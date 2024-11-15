@@ -1,5 +1,7 @@
+__pycache__/
 *_tex.png
 *.sc
 *.bin
 *~
-*_out
+.*~
+*_out/

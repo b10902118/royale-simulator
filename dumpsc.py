@@ -276,7 +276,7 @@ def process_file_type_47(file_path, path):
     return process_sctx(os.path.splitext(base_name)[0], data, path)
 
 
-def process_sc(base_dir, base_name, data, path, old):
+def process_sc(base_dir, base_name, data, path, old, decmopress_only=False):
     reader = Reader(data)
     reader.read(2)
     file_ver_major = reader.read_uint32(byteorder="big")
@@ -289,8 +289,11 @@ def process_sc(base_dir, base_name, data, path, old):
 
     decompressed = decompress(reader.read())
 
-    with open(os.path.join(path, f"{base_name}_decompressed.bin"), "wb") as f:
-        f.write(decompressed)
+    if decmopress_only:
+        with open(os.path.join(path, f"{base_name}.bin"), "wb") as f:
+            f.write(decompressed)
+        logging.info(f"{base_name}.bin saved")
+        return
 
     if hashlib.md5(decompressed).digest() != md5_hash:
         logging.debug("File seems corrupted")
@@ -368,7 +371,7 @@ def process_sc(base_dir, base_name, data, path, old):
             pixels = reader.read(file_size - 5)
             img = create_image(width, height, pixels, sub_type)
 
-        img.save(os.path.join(path, f"{base_name}_{count}.png"))
+        img.save(os.path.join(path, f"{base_name}.png"))
         count += 1
 
 
@@ -387,37 +390,32 @@ def check_header(data):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Extract png files from SC/CSV files")
-    parser.add_argument("files", help="sc file", nargs="+")
-    parser.add_argument("--old", action="store_true", help="used for '*_dl.sc' files")
-    parser.add_argument("-o", help="Extract pngs to directory", type=str)
+    parser = argparse.ArgumentParser(
+        description="Extract sprite atlas from *_tex.sc or decompress *.sc"
+    )
+    parser.add_argument("file", help="sc file")
     parser.add_argument("--verbose", action="store_true", help="Print debug infos")
     args = parser.parse_args()
 
-    if args.o:
-        path = os.path.normpath(args.o)
-    else:
-        path = os.getcwd()
+    path = os.getcwd()
 
     level = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(format="", level=level)
+    old = False
 
-    for file in args.files:
-        base_dir = os.path.dirname(file)
-        base_name, ext = os.path.splitext(os.path.basename(file))
-        logging.info(base_name + ext)
-        with open(file, "rb") as f:
-            data = f.read()
+    file = args.file
+    base_dir = os.path.dirname(file)
+    base_name, ext = os.path.splitext(os.path.basename(file))
+    logging.info(base_name + ext)
+    with open(file, "rb") as f:
+        data = f.read()
 
-        file_type = check_header(data)
+    file_type = check_header(data)
 
-        if file_type == "csv":
-            process_csv(base_name + ext, data, path)
-        elif file_type == "sig:":
-            process_csv(base_name + ext, data[68:], path)
-        elif file_type == "sc":
-            process_sc(base_dir, base_name, data, path, args.old)
-        elif file_type == "ktx":
-            process_ktx(base_name, data, path)
-        elif file_type == "sctx":
-            process_sctx(base_name, data, path)
+    if file_type == "sc":
+        if file.endswith("_tex.sc"):
+            process_sc(base_dir, base_name, data, path, old)
+        else:
+            process_sc(base_dir, base_name, data, path, old, decmopress_only=True)
+    else:
+        logging.error("Not an sc file")
