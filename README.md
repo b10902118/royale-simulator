@@ -4,9 +4,10 @@
 
 1. set the `SC_DIR` in Makefile
 
-2. 
+2. Arg is base filename without extension, ex:
+
 	```
-	make chr_skeleton  # base filename without extension
+	make chr_skeleton  
 	```
 
 
