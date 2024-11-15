@@ -1,0 +1,4 @@
+Pillow
+pylzham
+texture2ddecoder
+zstandard
