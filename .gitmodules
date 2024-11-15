@@ -1,6 +1,0 @@
-[submodule "sc_decode"]
-	path = sc_decode
-	url = https://github.com/Galaxy1036/sc_decode.git
-[submodule "cr-sc-dump"]
-	path = cr-sc-dump
-	url = https://github.com/123456abcdef/cr-sc-dump.git
