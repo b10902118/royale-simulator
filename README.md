@@ -25,4 +25,8 @@
 	```bash
 	./sc_decode.py chr_skeleton.bin # out: chr_skeleton_out/
 	```
+### Reference
+https://github.com/123456abcdef/cr-sc-dump
+https://github.com/Galaxy1036/sc_decode/
+https://github.com/sc-workshop/SupercellFlash
 
