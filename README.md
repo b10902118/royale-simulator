@@ -27,6 +27,8 @@
 	```
 ### Reference
 https://github.com/123456abcdef/cr-sc-dump
+
 https://github.com/Galaxy1036/sc_decode/
+
 https://github.com/sc-workshop/SupercellFlash
 
