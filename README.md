@@ -27,7 +27,7 @@
 	```
 
 ### Note
-New sc can only be downloaded from server [SC-Assets-Downloader-GUI](https://github.com/Galaxy1036/SC-Assets-Downloader-GUI). The new sc file is compressed by ZSTD, which cr-sc-dump can recognize but still needs to dump the decompressed data to sc_decode. For some character like skeleton, the decompressed swf has extra header and cannot be decoded currently, not sure whether it is for China version.
+fixed: new sc (version >= 4) have to read hash_length
 
 ### Reference
 https://github.com/123456abcdef/cr-sc-dump
