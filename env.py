@@ -158,10 +158,11 @@ class ClashRoyaleEnv(gym.Env):
 
         #先暫時丟第一張
         if self.hasput==False:
-            self.arena.place_card(self.player.put_card(0),8,20,self.player.type)
-            self.arena.place_card(self.enemy.put_card(0),8,10,self.enemy.type)
-            # self.arena.place_card(Character("Giant"),5,10,self.enemy.type)
-            # self.arena.place_card(Character("Giant"),15,21,self.player.type)
+            # self.arena.place_card(self.player.put_card(0),8,20,self.player.type)
+            # self.arena.place_card(self.enemy.put_card(0),8,10,self.enemy.type)
+            self.arena.place_card(Character("Giant"),5,12,self.enemy.type)
+            self.arena.place_card(Character("Minions"),5,8,self.enemy.type)
+            self.arena.place_card(Character("Giant"),8,18,self.player.type)
             self.hasput=True
         
         self.arena.update()

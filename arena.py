@@ -1,6 +1,7 @@
 import pygame
 import numpy as np
 from character import Character
+from projectile import Projectile
 
 GRID_WIDTH=22.5
 GRID_HEIGHT=16
@@ -32,34 +33,48 @@ class KingTower():
         self.type=type
         self.posX=X+W/2
         self.posY=Y if type== "blue" else Y+H
+        self.W=W
+        self.H=H
         self.gameObject=pygame.Rect(X,Y,W,H)
         self.enemis_in_range=False
         self.font = pygame.font.SysFont("Arial", 12, bold=True)
         self.current_time = pygame.time.get_ticks()
         self.last_attack_time = 0  
+        self.Projectile="KingProjectile"
+        self.target=None
         
     def is_destroyed(self):
         return self.life<=0   
     
-    def attack(self,enemys):
+    def attack(self,arena,enemys):
         self.current_time = pygame.time.get_ticks()
         min_dist=100000000
         attack_target=None
         for e in enemys:
             ellipse_sight = {"cx": self.gameObject.centerx, "cy": self.gameObject.centery, "a": self.attack_range / 1000 * GRID_WIDTH, "b": self.attack_range / 1000 * GRID_HEIGHT}  
-            ellipse_enemy = {"cx": e.posX, "cy": e.posY, "a": 4*e.CollisionRadius/1000*GRID_WIDTH, "b": 4*e.CollisionRadius/1000*GRID_HEIGHT}
+            ellipse_enemy = {"cx": e.posX, "cy": e.posY, "a": 2*e.CollisionRadius/1000*GRID_WIDTH, "b": 2*e.CollisionRadius/1000*GRID_HEIGHT}
             if self.are_ellipses_intersecting(ellipse_sight,ellipse_enemy):
                 enemy_dist=self.calc_distance(e)
                 if enemy_dist<min_dist:
                     min_dist=enemy_dist
                     attack_target=e
-        
+        #print(attack_target.name if attack_target else "None",self.current_time,self.last_attack_time)
         if attack_target!=None:
+            if self.target==None:
+                self.target=attack_target
+            else:
+                if self.target.life<0:
+                    self.target=attack_target
+                else:
+                    attack_target=self.target
             self.enemis_in_range=True
             if self.current_time - self.last_attack_time >= self.attack_speed:
                 self.last_attack_time = self.current_time
-                attack_target.life-=self.damage
+                proj=Projectile(self.Projectile,self.type)
+                proj.initiate(attack_target,self.posX,self.posY+0.5*self.H if self.type== "blue" else self.posY-0.5*self.H)
+                arena.all_projectile.append(proj)
         else:
+            self.target=None
             self.enemis_in_range=False
             
     
@@ -138,42 +153,55 @@ class PrincessTower():
     def __init__(self,X,Y,W,H,name="left tower",type="blue"):
         self.name=name
         self.attack_range=7500
-        self.attack_speed=600
+        self.attack_speed=800
         self.damage=50
         self.total_life=1400
         self.life=1400
         self.type=type
         self.posX=X+W/2
         self.posY=Y if type== "blue" else Y+H
+        self.W=W
+        self.H=H
         self.gameObject=pygame.Rect(X,Y,W,H)
         self.enemis_in_range=False
         self.font = pygame.font.SysFont("Arial", 12, bold=True)
         self.current_time = pygame.time.get_ticks()
         self.last_attack_time = 0 
+        self.Projectile="TowerPrincessProjectile"
+        self.target=None
         
     def is_destroyed(self):
         return self.life<=0
     
-    def attack(self,enemys):
+    def attack(self,arena,enemys):
         self.current_time = pygame.time.get_ticks()
         min_dist=100000000
         attack_target=None
         for e in enemys:
             ellipse_sight = {"cx": self.gameObject.centerx, "cy": self.gameObject.centery, "a": self.attack_range / 1000 * GRID_WIDTH, "b": self.attack_range / 1000 * GRID_HEIGHT}  
-            ellipse_enemy = {"cx": e.posX, "cy": e.posY, "a": 4*e.CollisionRadius/1000*GRID_WIDTH, "b": 4*e.CollisionRadius/1000*GRID_HEIGHT}
+            ellipse_enemy = {"cx": e.posX, "cy": e.posY, "a": 3*e.CollisionRadius/1000*GRID_WIDTH, "b": 3*e.CollisionRadius/1000*GRID_HEIGHT}
             if self.are_ellipses_intersecting(ellipse_sight,ellipse_enemy):
                 enemy_dist=self.calc_distance(e)
                 if enemy_dist<min_dist:
                     min_dist=enemy_dist
                     attack_target=e
-        
         #print(attack_target.name if attack_target else "None",self.current_time,self.last_attack_time)
         if attack_target!=None:
+            if self.target==None:
+                self.target=attack_target
+            else:
+                if self.target.life<0:
+                    self.target=attack_target
+                else:
+                    attack_target=self.target
             self.enemis_in_range=True
             if self.current_time - self.last_attack_time >= self.attack_speed:
                 self.last_attack_time = self.current_time
-                attack_target.life-=self.damage
+                proj=Projectile(self.Projectile,self.type)
+                proj.initiate(attack_target,self.posX,self.posY+0.5*self.H if self.type== "blue" else self.posY-0.5*self.H)
+                arena.all_projectile.append(proj)
         else:
+            self.target=None
             self.enemis_in_range=False
             
     
@@ -310,7 +338,7 @@ class Arena():
     def __init__(self):
         # 玩家和敵人的主堡（4x4）
         self.player_castle = KingTower(8*GRID_WIDTH, 37.5*GRID_HEIGHT, 4*GRID_WIDTH,4*GRID_HEIGHT,name="Player Main Tower",type="blue")
-        self.enemy_castle = KingTower(8*GRID_WIDTH, 11.5*GRID_HEIGHT, 4*GRID_WIDTH,4*GRID_HEIGHT,name="Enemy Right Tower",type="red")
+        self.enemy_castle = KingTower(8*GRID_WIDTH, 11.5*GRID_HEIGHT, 4*GRID_WIDTH,4*GRID_HEIGHT,name="Enemy Main Tower",type="red")
         
         # 防禦塔（3x3）
         self.player_left_tower = PrincessTower(3*GRID_WIDTH, 34.5*GRID_HEIGHT, 3*GRID_WIDTH,3*GRID_HEIGHT,name="Player Left Tower",type="blue")
@@ -334,6 +362,8 @@ class Arena():
         # player/enymy角色的queue
         self.player_queue=[]
         self.enemy_queue=[]
+        
+        self.all_projectile=[]
     
 
         
@@ -447,14 +477,14 @@ class Arena():
             
         #tower attack
         if self.player_castle.life<self.player_castle.total_life:
-            self.player_castle.attack(self.enemy_queue)
+            self.player_castle.attack(self,self.enemy_queue)
         if self.enemy_castle.life<self.enemy_castle.total_life:
-            self.enemy_castle.attack(self.enemy_queue)
+            self.enemy_castle.attack(self,self.player_queue)
             
-        self.player_left_tower.attack(self.enemy_queue)
-        self.player_right_tower.attack(self.enemy_queue)
-        self.enemy_left_tower.attack(self.player_queue)
-        self.enemy_right_tower.attack(self.player_queue)  
+        self.player_left_tower.attack(self,self.enemy_queue)
+        self.player_right_tower.attack(self,self.enemy_queue)
+        self.enemy_left_tower.attack(self,self.player_queue)
+        self.enemy_right_tower.attack(self,self.player_queue)  
         
         # remove dead army
         for p in self.player_queue: 
@@ -464,6 +494,11 @@ class Arena():
         for q in self.enemy_queue: 
             if q.life <= 0:
                 self.enemy_queue.remove(q)
+                
+        for proj in self.all_projectile:
+            proj.update(self)
+            if proj.destroyed:
+                self.all_projectile.remove(proj)
     
     def update_screen(self,screen):            
         # update game window
@@ -472,6 +507,9 @@ class Arena():
                 
         for q in self.enemy_queue: 
             q.draw(screen,show_act=True)
+            
+        for proj in self.all_projectile:
+            proj.draw(screen)
             
         
     def draw_castles_and_towers(self,screen):

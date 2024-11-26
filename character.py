@@ -1,7 +1,7 @@
 import os,csv,math,random
 import pygame
 import numpy as np
-
+from projectile import Projectile
 
 
 GRID_WIDTH=22.5
@@ -38,48 +38,11 @@ def read_spells_characters_csv(file_path):
                     Character_data[name]=Character_data[summon_character]
     return spells_characters_data
 
-def read_projectiles_csv(file_path):
-    projectiles_data = {}
-    # Define the columns we want to extract
-    columns_to_extract = [
-        "Damage", "CrownTowerDamagePercent", "Pushback", "Radius", "AoeToAir", 
-        "AoeToGround", "OnlyEnemies", "BuffTime", "ProjectileRadius", "ProjectileRange", 
-        "MinDistance"
-    ]
-    
-    with open(file_path, 'r', encoding='utf-8') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            if row['Name']!="string":
-                name = row['Name']
-                # Initialize a dictionary to hold the extracted data for each projectile
-                projectile_info = {}
-                
-                for col in columns_to_extract:
-                    value = row[col]
-                    
-                    # Handle boolean fields, setting missing values to "false"
-                    if value=="" or value.lower() == "false":
-                        projectile_info[col] = False
-                    # Handle integer fields, setting missing values to -1
-                    elif value=="" or value == "NULL":
-                        projectile_info[col] = -1
-                    else:
-                        # Convert non-empty values to the appropriate type (boolean or integer)
-                        if col in ["Damage", "CrownTowerDamagePercent", "Pushback", "Radius", 
-                                "ProjectileRange", "MinDistance"]:  # These are integers
-                            projectile_info[col] = int(value)
-                        else:  # Handle boolean fields like "AoeToAir", "AoeToGround", etc.
-                            projectile_info[col] = value.lower() == 'true'
-                
-                # Add the processed data for this projectile to the main dictionary
-                projectiles_data[name] = projectile_info
-    
-    return projectiles_data
+
 
 Character_data=read_characters_csv("./logic_csv/characters.csv")
 Spells_characters_data = read_spells_characters_csv("./logic_csv/spells_characters.csv")
-Projectile_data=read_projectiles_csv("./logic_csv/projectiles.csv")
+
 
 remove_keys=["AngryBarbarian","Archer","Barbarian","Bat","Goblin","Minion","Skeleton","SkeletonWarrior","SpearGoblin"]+[f"NOTINUSE{i}"for i in range(1,10) if i !=7]
 for k in remove_keys:
@@ -120,6 +83,8 @@ class Character:
         self.left_bridge=left_bridge
         self.right_bridge=right_bridge
         
+        self.target=None
+        
         self.msg="Loading..."
         
         self.current_time = pygame.time.get_ticks()
@@ -139,10 +104,8 @@ class Character:
                         setattr(self, key, int(value))
                     else:
                         setattr(self, key, value)
-        if hasattr(self, 'Projectile'):
-            if self.Projectile in list(Projectile_data.keys()):
-                for key, value in Projectile_data[self.Projectile].items():
-                    setattr(self, key, value)
+
+            
         self.can_fly=hasattr(self, 'FlyingHeight')
         if hasattr(self,"AoeToGround" )==False:
             self.AoeToGround=False
@@ -161,12 +124,29 @@ class Character:
             self.msg="Deploying..."
         else:
             target=self.find_target(enemy_troops)
+            if self.target==None:
+                self.target=target
+            else:
+                if hasattr(self.target,"enemis_in_range"):#原本目標為敵方防禦塔
+                    #將目標轉爲敵方單位
+                    self.target=target
+                else:
+                    if self.target.life<0:
+                        if target.life<0:
+                            self.target=None
+                        else:
+                            self.target=target
+                    else:#如果原本目標還活著,繼續攻擊原本目標
+                        target=self.target
+                    
+                        
             if self.can_attack(target):
                 self.attack_line_width=3
-                self.attack(target,enemy_troops)    
+                self.attack(target,enemy_troops,arena)    
             else:
                 self.attack_line_width=1
                 self.move(target)
+            
             self.avoid_collisions(enemy_troops+player_troops,arena)
         
         
@@ -177,9 +157,12 @@ class Character:
         
         #預設target為最近的防禦塔
         all_distance={}
-        all_distance[self.enemy_left_tower]=l_tower_distance
-        all_distance[self.enemy_right_tower]=r_tower_distance
-        all_distance[self.enemy_main_tower]=main_tower_distance
+        if self.enemy_left_tower.life>0:
+            all_distance[self.enemy_left_tower]=l_tower_distance
+        if self.enemy_right_tower.life>0:
+            all_distance[self.enemy_right_tower]=r_tower_distance
+        if self.enemy_main_tower.life>0:
+            all_distance[self.enemy_main_tower]=main_tower_distance
         
         targets_in_sight=[]
         if self.TargetOnlyBuildings==False:
@@ -198,9 +181,10 @@ class Character:
             self.sight_line_width=3
         else:
             self.sight_line_width=1
- 
+
+        #print(all_distance)
         target = min(all_distance, key=all_distance.get)
-        #print(f"{self.name}'s tagret is {target.name}")
+        # print(f"{self.name}'s tagret is {target.name}")
         return target
         
     def can_attack(self,enemy):     
@@ -220,27 +204,35 @@ class Character:
             else:
                 return False
 
-    def attack(self,target,enemy_troop):
+    def attack(self,target,enemy_troops,arena):
         self.msg=f"Attack {target.name}"
         #print(self.current_time,self.last_attack_time,self.HitSpeed)
         if self.current_time - self.last_attack_time >= self.HitSpeed:
             self.last_attack_time = self.current_time
-            if self.AoeToGround==False and self.AoeToAir==False:#單體攻擊
-                target.life -= self.Damage
+            if hasattr(self,"Projectile"):
+                proj=Projectile(self.Projectile,self.type)
+                proj.initiate(target,self.posX,self.posY+0.5*self.CollisionRadius*GRID_HEIGHT/1000)
+                arena.all_projectile.append(proj)
             else:
-                ground_enemys=[e for e in enemy_troop if e.can_fly==False]
-                air_enemys=[e for e in enemy_troop if e.can_fly]
-                if self.AoeToGround==True:
-                    for g in ground_enemys:
-                        if ((g.posX-target.posX) ** 2) / (self.Radius/1000*GRID_WIDTH) ** 2 + ((g.posY - target.posY) ** 2) / (self.Radius/1000*GRID_HEIGHT) ** 2 <= 1:
-                            g.life-=self.Damage     
-                if self.AoeToAir==True:
-                    for a in air_enemys:
-                        if ((a.posX-target.posX) ** 2) / (self.Radius/1000*GRID_WIDTH) ** 2 + ((a.posY - target.posY) ** 2) / (self.Radius/1000*GRID_HEIGHT) ** 2 <= 1:
-                            a.life-=self.Damage
-                for t in [self.enemy_left_tower,self.enemy_right_tower,self.enemy_main_tower]:
-                      if ((t.posX-target.posX) ** 2) / (self.Radius/1000*GRID_WIDTH) ** 2 + ((t.posY - target.posY) ** 2) / (self.Radius/1000*GRID_HEIGHT) ** 2 <= 1:
-                            t.life-=self.Damage  
+                target.life -= self.Damage
+                
+            
+            # if self.AoeToGround==False and self.AoeToAir==False:#單體攻擊
+            #     target.life -= self.Damage
+            # else:
+            #     ground_enemys=[e for e in enemy_troop if e.can_fly==False]
+            #     air_enemys=[e for e in enemy_troop if e.can_fly]
+            #     if self.AoeToGround==True:
+            #         for g in ground_enemys:
+            #             if ((g.posX-target.posX) ** 2) / (self.Radius/1000*GRID_WIDTH) ** 2 + ((g.posY - target.posY) ** 2) / (self.Radius/1000*GRID_HEIGHT) ** 2 <= 1:
+            #                 g.life-=self.Damage     
+            #     if self.AoeToAir==True:
+            #         for a in air_enemys:
+            #             if ((a.posX-target.posX) ** 2) / (self.Radius/1000*GRID_WIDTH) ** 2 + ((a.posY - target.posY) ** 2) / (self.Radius/1000*GRID_HEIGHT) ** 2 <= 1:
+            #                 a.life-=self.Damage
+            #     for t in [self.enemy_left_tower,self.enemy_right_tower,self.enemy_main_tower]:
+            #           if ((t.posX-target.posX) ** 2) / (self.Radius/1000*GRID_WIDTH) ** 2 + ((t.posY - target.posY) ** 2) / (self.Radius/1000*GRID_HEIGHT) ** 2 <= 1:
+            #                 t.life-=self.Damage  
         
     def move(self,target):
         #目標是防禦塔
@@ -413,9 +405,15 @@ class Character:
         x2_right=self.right_bridge.posX+0.5*self.right_bridge.W-self.CollisionRadius*GRID_WIDTH/1000
         
         if self.type=="player":
-            return (self.posY<=self.left_bridge.posY+0.5*self.left_bridge.H -2*self.CollisionRadius*GRID_HEIGHT/1000) and (x1_left<=self.posX<=x2_left or x1_right<self.posX<=x2_right)
+            if (self.posY<=self.left_bridge.posY+0.5*self.left_bridge.H -2*self.CollisionRadius*GRID_HEIGHT/1000):
+                return True
+            else:
+                return (x1_left<=self.posX<=x2_left or x1_right<self.posX<=x2_right)
         else:
-            return (self.posY>=self.left_bridge.posY-0.5*self.left_bridge.H -2*self.CollisionRadius*GRID_HEIGHT/1000) and (x1_left<=self.posX<=x2_left or x1_right<self.posX<=x2_right)
+            if (self.posY>=self.left_bridge.posY-0.5*self.left_bridge.H -2*self.CollisionRadius*GRID_HEIGHT/1000) :
+                return True
+            else:
+                return (x1_left<=self.posX<=x2_left or x1_right<self.posX<=x2_right)
     
     def is_on_the_bridge(self):
         x1_left=self.left_bridge.posX-0.5*self.left_bridge.W+self.CollisionRadius*GRID_WIDTH/1000
@@ -434,8 +432,8 @@ class Character:
     
     def _move_around_tower(self, tower, next_posX, next_posY):
         # 角色的橢圓半徑（長軸和短軸）
-        ellipse_radius_x = self.CollisionRadius / 1000 * GRID_WIDTH
-        ellipse_radius_y = self.CollisionRadius / 1000 * GRID_HEIGHT
+        ellipse_radius_x = 1.2*self.CollisionRadius / 1000 * GRID_WIDTH
+        ellipse_radius_y = 1.2*self.CollisionRadius / 1000 * GRID_HEIGHT
 
         # 防禦塔的中心和半徑
         tower_center = pygame.Vector2(tower.gameObject.center)
@@ -451,7 +449,7 @@ class Character:
             on_the_left=char_center.x<tower_center.x
 
             # 更新角色位置
-            self.posX += -self.Speed*GRID_WIDTH / 100*DELTA_TIME if on_the_left else self.Speed*GRID_WIDTH / 100*DELTA_TIME
+            self.posX += -self.Speed*GRID_WIDTH / 100*DELTA_TIME-((next_posX-self.posX)*DELTA_TIME) if on_the_left else self.Speed*GRID_WIDTH / 100*DELTA_TIME+((next_posX-self.posX)*DELTA_TIME)
         else:
             # 如果不碰撞，直接更新目標位置，並考慮 DELTA_TIME
             self.posX += (next_posX - self.posX) * DELTA_TIME
