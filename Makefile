@@ -1,5 +1,6 @@
 # Default source directory
 SC_DIR := ../2.0/assets/sc
+#SC_DIR := /home/bill/cr/SC-Assets-Downloader-GUI/output/41afa2ab52f09d9befdd8558abe3c7db921b4363/sc
 
 # Get basename from the first argument
 BASE := $(wordlist 1,1,$(MAKECMDGOALS))

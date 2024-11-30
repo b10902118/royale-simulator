@@ -283,7 +283,10 @@ def process_sc(base_dir, base_name, data, path, old, decmopress_only=False):
     file_ver_minor = reader.read_uint32(byteorder="big")
     # hash_length = reader.read_uint32(byteorder="big")
     logging.debug(f"sc file version: {file_ver_major}.{file_ver_minor}")
+    # print(f"sc file version: {file_ver_major}.{file_ver_minor}")
     # logging.debug(f"hash length: {hash_length}")
+    if file_ver_major >= 4:
+        hash_length = reader.read_uint32(byteorder="big")  # 16
     md5_hash = reader.read(16)
     logging.debug(f"md5 hash: {md5_hash.hex()}")
 
