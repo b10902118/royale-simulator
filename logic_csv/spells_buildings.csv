@@ -7,7 +7,7 @@
 "BombTower","bomb_tower","Arena2","Rare",5,,,,,"BombTower",,,,,,,,,,,,,,,,,,,,,,,,,,,"SpellCasting",,"TID_SPELL_BOMB_TOWER","TID_SPELL_INFO_BOMB_TOWER",,,,,,,
 "BarbarianHut","barbarian_hut","Arena3","Rare",7,,,,,"BarbarianHut",,,,,,,,,,,,,,,,,,,,,,,,,,,"SpellCasting",,"TID_SPELL_BARBARIAN_HUT","TID_SPELL_INFO_BARBARIAN_HUT",,,,,,,
 "Tesla","building_tesla","Arena4","Common",4,,,,,"Tesla",,,,,,,,,,,,,,,,,,,,,,,,,,,"SpellCasting",,"TID_SPELL_TESLA","TID_SPELL_INFO_TESLA",,,,,,,
-"Elixir Collector","building_elixir_collector","Arena6","Rare",6,,,,,"ElixirCollector",,,,,,,,,,,,,,,,,,,,,,,,,,,"SpellCasting",,"TID_SPELL_ELIXIR_COLLECTOR","TID_SPELL_INFO_ELIXIR_COLLECTOR",,,,,,,
+"ElixirCollector","building_elixir_collector","Arena6","Rare",6,,,,,"ElixirCollector",,,,,,,,,,,,,,,,,,,,,,,,,,,"SpellCasting",,"TID_SPELL_ELIXIR_COLLECTOR","TID_SPELL_INFO_ELIXIR_COLLECTOR",,,,,,,
 "Xbow","building_xbow","Arena3","Epic",6,,,,,"Xbow",,,,,,,,,,,,,,,,,,,,,,,,,,,"SpellCasting",,"TID_SPELL_XBOW","TID_SPELL_INFO_XBOW",,,,,,,
 "Tombstone","tombstone","Arena2","Rare",3,,,,,"Tombstone",,,,,,,,,,,,,,,,,,,,,,,,,,,"SpellCasting",,"TID_SPELL_TOMBSTONE","TID_SPELL_INFO_TOMBSTONE",,,,,,,
 "FirespiritHut","firespirit_hut","Arena5","Rare",4,,,,,"FirespiritHut",,,,,,,,,,,,,,,,,,,,,,,,,,,"SpellCasting",,"TID_SPELL_FIRE_SPIRIT_HUT","TID_SPELL_INFO_FIRE_SPIRIT_HUT",,,,,,,

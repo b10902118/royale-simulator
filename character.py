@@ -1,16 +1,14 @@
 import os,csv,math,random
 import pygame
 import numpy as np
+from Constant import GRID_WIDTH,GRID_HEIGHT,DELTA_TIME
 from projectile import Projectile
+import building
 
 
-GRID_WIDTH=22.5
-GRID_HEIGHT=16
 BLUE = (0, 150, 238)
 RED = (255, 85, 85)
 
-fps=30
-DELTA_TIME=1/fps
 
 # Function to read the CSV file and load character data into a dictionary
 def read_characters_csv(file_path):
@@ -137,7 +135,8 @@ class Character:
                         else:
                             self.target=target
                     else:#如果原本目標還活著,繼續攻擊原本目標
-                        target=self.target
+                        if self.can_attack(self.target):
+                            target=self.target
                     
                         
             if self.can_attack(target):
@@ -168,14 +167,24 @@ class Character:
         if self.TargetOnlyBuildings==False:
             for enemy in enemy_troops:
                 if self.is_in_sight(enemy):
-                    if not (self.AttacksAir==False and enemy.can_fly):
+                    if type(enemy)==building.Building:
                         targets_in_sight.append(enemy)
+                    else:
+                        if not (self.AttacksAir==False and enemy.can_fly):
+                            targets_in_sight.append(enemy)
             if len(targets_in_sight)>0:
                 all_distance={} #有敵方軍隊出現，敵方防禦塔變為次要目標
                 for t in targets_in_sight:
                     all_distance[t]=self.calc_distance(self.posX,t.posX,self.posY,t.posY)
         else:
-            "not implement"
+            for enemy in enemy_troops:
+                if type(enemy)==building.Building:
+                    if self.is_in_sight(enemy):
+                        targets_in_sight.append(enemy)
+            if len(targets_in_sight)>0:
+                all_distance={} #有敵方軍隊出現，敵方防禦塔變為次要目標
+                for t in targets_in_sight:
+                    all_distance[t]=self.calc_distance(self.posX,t.posX,self.posY,t.posY)
         
         if len(targets_in_sight)>0:
             self.sight_line_width=3
@@ -192,6 +201,11 @@ class Character:
             ellipse_atk_range = {"cx": self.posX, "cy": self.posY, "a": self.Range / 1000 * GRID_WIDTH, "b": self.Range / 1000 * GRID_HEIGHT}
             ellipse_enemy = {"cx": enemy.posX, "cy": enemy.posY, "a": enemy.CollisionRadius/1000*GRID_WIDTH, "b": enemy.CollisionRadius/1000*GRID_HEIGHT} 
             return self.are_ellipses_intersecting(ellipse_enemy,ellipse_atk_range)
+        elif type(enemy)==building.Building:
+            ellipse_atk_range = {"cx": self.posX, "cy": self.posY, "a": self.Range / 1000 * GRID_WIDTH, "b": self.Range / 1000 * GRID_HEIGHT}
+            ellipse_enemy = {"cx": enemy.posX, "cy": enemy.posY, "a": 0.5*enemy.W, "b": 0.5*enemy.H} 
+            return self.are_ellipses_intersecting(ellipse_enemy,ellipse_atk_range)
+            
         else:
             a = self.Range / 1000 *GRID_WIDTH  # 長軸半徑
             b = self.Range / 1000 *GRID_HEIGHT  # 短軸半徑
@@ -245,12 +259,13 @@ class Character:
                     self.msg=f"Move to {target.name} (to bridge)"
                     self._move_to_bridge()
                 else:
-                        if self.is_on_the_bridge():
-                            self.msg=f"Move to {target.name} (on bridge)"
-                            self._move_on_the_bridge(target)
-                        else:
-                            self.msg=f"Move to {target.name} (over the bridge)"
-                            self._move_to_target(target)
+                    if self.is_on_the_bridge():
+                        self.msg=f"Move to {target.name} (on bridge)"
+                        self._move_on_the_bridge(target)
+                    else:
+                        self.msg=f"Move to {target.name} (over the bridge)"
+                        self._move_to_target(target)
+        
         #目標是敵方軍隊    
         else:
             if self.can_fly or self.name=="HogRider":
@@ -275,10 +290,13 @@ class Character:
     def avoid_collisions(self, all_characters,arena):
         #self.avoid_out_of_bound(arena)
         for other in all_characters:
-            if other is not self and hasattr(other,"summon_num") and self.can_fly==other.can_fly:  # 避免和自己進行檢測
+            if other is not self and (hasattr(other,"summon_num") or type(other)==building.Building) and self.can_fly==other.can_fly:  # 避免和自己進行檢測
                 # 計算與其他角色的距離
                 ellipse_self = {"cx": self.posX, "cy": self.posY, "a": self.CollisionRadius / 1000 * GRID_WIDTH, "b": self.CollisionRadius / 1000 * GRID_HEIGHT}  
-                ellipse_other = {"cx": other.posX, "cy": other.posY, "a": other.CollisionRadius/1000*GRID_WIDTH, "b": other.CollisionRadius/1000*GRID_HEIGHT} 
+                if type(other)==building.Building:
+                    ellipse_other = {"cx": other.posX, "cy": other.posY, "a": 0.5*other.W, "b": 0.5*other.H} 
+                else:
+                    ellipse_other = {"cx": other.posX, "cy": other.posY, "a": other.CollisionRadius/1000*GRID_WIDTH, "b": other.CollisionRadius/1000*GRID_HEIGHT} 
                 if self.are_ellipses_intersecting(ellipse_self, ellipse_other):
                     # 計算兩橢圓中心之間的距離
                     dx = self.posX - other.posX
@@ -300,10 +318,15 @@ class Character:
                     #print(min_distance,distance,overlap)
 
                     # 更新角色位置，將兩者分開
-                    self.posX += (other.Mass/self.Mass)*dx * overlap *DELTA_TIME
-                    self.posY += (other.Mass/self.Mass)*dy * overlap *DELTA_TIME
-                    other.posX -= (self.Mass/other.Mass)*dx * overlap *DELTA_TIME
-                    other.posY -= (self.Mass/other.Mass)*dy * overlap *DELTA_TIME  
+                    if type(other)==building.Building:
+                        self.posX += dx * overlap *DELTA_TIME *0.4
+                        self.posY += dy * overlap *DELTA_TIME *0.4
+                        
+                    else:
+                        self.posX += (other.Mass/self.Mass)*dx * overlap *DELTA_TIME #*1.5
+                        self.posY += (other.Mass/self.Mass)*dy * overlap *DELTA_TIME #*1.5
+                        other.posX -= (self.Mass/other.Mass)*dx * overlap *DELTA_TIME#*1.5
+                        other.posY -= (self.Mass/other.Mass)*dy * overlap *DELTA_TIME#*1.5
         
     
     def push_x(self,px):
@@ -386,9 +409,13 @@ class Character:
 
             # 檢查 enemy是否在sight橢圓內
             return self.are_ellipses_intersecting(ellipse_enemy,ellipse_sight)
+        elif type(enemy)==building.Building:
+            ellipse_atk_range = {"cx": self.posX, "cy": self.posY, "a": self.SightRange / 1000 * GRID_WIDTH, "b": self.SightRange / 1000 * GRID_HEIGHT}
+            ellipse_enemy = {"cx": enemy.posX, "cy": enemy.posY, "a": 0.5*enemy.W, "b": 0.5*enemy.H} 
+            return self.are_ellipses_intersecting(ellipse_enemy,ellipse_atk_range)
         else:
-            a = self.Range / 1000 *GRID_WIDTH  # 長軸半徑
-            b = self.Range / 1000 *GRID_HEIGHT  # 短軸半徑
+            a = self.SightRange / 1000 *GRID_WIDTH  # 長軸半徑
+            b = self.SightRange / 1000 *GRID_HEIGHT  # 短軸半徑
             
             tower_y=enemy.posY-self.CollisionRadius*GRID_HEIGHT/1000 if self.type=="player" else enemy.posY+self.CollisionRadius*GRID_HEIGHT/1000
 
@@ -405,30 +432,31 @@ class Character:
         x2_right=self.right_bridge.posX+0.5*self.right_bridge.W-self.CollisionRadius*GRID_WIDTH/1000
         
         if self.type=="player":
-            if (self.posY<=self.left_bridge.posY+0.5*self.left_bridge.H -2*self.CollisionRadius*GRID_HEIGHT/1000):
+            if self.posY<=self.left_bridge.posY+0.5*self.left_bridge.H: #-2*self.CollisionRadius*GRID_HEIGHT/1000:
                 return True
             else:
                 return (x1_left<=self.posX<=x2_left or x1_right<self.posX<=x2_right)
         else:
-            if (self.posY>=self.left_bridge.posY-0.5*self.left_bridge.H -2*self.CollisionRadius*GRID_HEIGHT/1000) :
+            if self.posY>=self.left_bridge.posY-0.5*self.left_bridge.H-self.CollisionRadius*GRID_HEIGHT/1000 :
                 return True
             else:
                 return (x1_left<=self.posX<=x2_left or x1_right<self.posX<=x2_right)
     
     def is_on_the_bridge(self):
-        x1_left=self.left_bridge.posX-0.5*self.left_bridge.W+self.CollisionRadius*GRID_WIDTH/1000
-        x2_left=self.left_bridge.posX+0.5*self.left_bridge.W-self.CollisionRadius*GRID_WIDTH/1000
-        x1_right=self.right_bridge.posX-0.5*self.right_bridge.W+self.CollisionRadius*GRID_WIDTH/1000
-        x2_right=self.right_bridge.posX+0.5*self.right_bridge.W-self.CollisionRadius*GRID_WIDTH/1000
+        x1_left=self.left_bridge.posX-0.5*self.left_bridge.W+0.5*self.CollisionRadius*GRID_WIDTH/1000
+        x2_left=self.left_bridge.posX+0.5*self.left_bridge.W-0.5*self.CollisionRadius*GRID_WIDTH/1000
+        x1_right=self.right_bridge.posX-0.5*self.right_bridge.W+0.5*self.CollisionRadius*GRID_WIDTH/1000
+        x2_right=self.right_bridge.posX+0.5*self.right_bridge.W-0.5*self.CollisionRadius*GRID_WIDTH/1000
         
         if self.type=="player":
-            y1=self.left_bridge.posY-0.5*self.left_bridge.H-2*self.CollisionRadius*GRID_HEIGHT/1000
+            y1=self.left_bridge.posY-0.5*self.left_bridge.H-self.CollisionRadius*GRID_HEIGHT/1000
             y2=self.left_bridge.posY+0.5*self.left_bridge.H+2*self.CollisionRadius*GRID_HEIGHT/1000
         else:
             y1=self.left_bridge.posY-0.5*self.left_bridge.H-2*self.CollisionRadius*GRID_HEIGHT/1000
-            y2=self.left_bridge.posY+0.5*self.left_bridge.H-1*self.CollisionRadius*GRID_HEIGHT/1000
+            y2=self.left_bridge.posY+0.5*self.left_bridge.H+0*self.CollisionRadius*GRID_HEIGHT/1000
         # print((x1_left,x1_right,x2_left,x2_right,self.posX),(y1,y2,self.posY))
-        return (y1<=self.posY<=y2) and (x1_left<=self.posX<=x2_left or x1_right<self.posX<=x2_right)
+        # print((y1<=self.posY<=y2),((x1_left<=self.posX<=x2_left) or (x1_right<=self.posX<=x2_right)))
+        return (y1<=self.posY<=y2) and ((x1_left<=self.posX<=x2_left) or (x1_right<=self.posX<=x2_right))
     
     def _move_around_tower(self, tower, next_posX, next_posY):
         # 角色的橢圓半徑（長軸和短軸）
@@ -456,12 +484,15 @@ class Character:
             self.posY += (next_posY - self.posY) * DELTA_TIME    
                       
     def _move_to_bridge(self):
-        l_bridge_dist=self.calc_distance(self.posX,self.left_bridge.posX,self.posY,self.left_bridge.posY)
-        r_bridge_dist=self.calc_distance(self.posX,self.right_bridge.posX,self.posY,self.right_bridge.posY)
+        l_bridge_dist=self.calc_distance(self.posX,self.left_bridge.posX,self.posY,self.left_bridge.posY if self.type=="player" else self.left_bridge.posY-0.5*self.left_bridge.H-self.CollisionRadius / 1000 * GRID_HEIGHT)
+        r_bridge_dist=self.calc_distance(self.posX,self.right_bridge.posX,self.posY,self.right_bridge.posY if self.type=="player" else self.right_bridge.posY-0.5*self.right_bridge.H-self.CollisionRadius / 1000 * GRID_HEIGHT)
         target_bridge=self.left_bridge if l_bridge_dist<r_bridge_dist else self.right_bridge
         bridge_distance=l_bridge_dist if l_bridge_dist<r_bridge_dist else r_bridge_dist
         delta_x = target_bridge.posX - self.posX
         delta_y = target_bridge.posY - self.posY
+        if self.type=="enemy":
+            delta_y-=0.5*target_bridge.H+self.CollisionRadius / 1000 * GRID_HEIGHT
+        
         unit_vector_x = delta_x / bridge_distance
         unit_vector_y = delta_y / bridge_distance
         if self.can_fly == False:
@@ -504,11 +535,15 @@ class Character:
         unit_vector_x = delta_x / distance
         unit_vector_y = delta_y / distance
         
+        #print(target.posX,target.posY,delta_x,delta_y)
+        
         # 根據角色的移動速度更新位置
         # 限制posX只能在橋上
         if target_bridge.posX-0.5*target_bridge.W+self.CollisionRadius / 1000 * GRID_WIDTH <= self.posX + unit_vector_x * (self.Speed/100*GRID_WIDTH)*DELTA_TIME <= target_bridge.posX+0.5*target_bridge.W-self.CollisionRadius / 1000 * GRID_WIDTH:
             self.posX += unit_vector_x * (self.Speed/100*GRID_WIDTH)*DELTA_TIME 
-        self.posY += unit_vector_y * (self.Speed/100*GRID_HEIGHT)*DELTA_TIME 
+            self.posY += unit_vector_y * (self.Speed/100*GRID_HEIGHT)*DELTA_TIME 
+        else:
+            self.posY += unit_vector_y * (self.Speed/100*GRID_HEIGHT)*DELTA_TIME- (abs(unit_vector_x) * (self.Speed/100*GRID_WIDTH)*DELTA_TIME)*(0.5 if self.type=="player" else -0.5)
 
     def _ellipse_rect(self, centerX, centerY):
         """

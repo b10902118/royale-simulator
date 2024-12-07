@@ -4,6 +4,7 @@ import numpy as np
 import pygame
 from arena import GRID_HEIGHT,GRID_WIDTH,Arena
 from character import Character
+from building import Building
 from player import Player
 
 
@@ -136,7 +137,7 @@ class ClashRoyaleEnv(gym.Env):
 
         # 初始化遊戲狀態
 
-        self.arena=Arena()
+        self.arena=Arena(player,enemy)
         self.game_window=GameWindow()
         
         self.player=player
@@ -158,11 +159,12 @@ class ClashRoyaleEnv(gym.Env):
 
         #先暫時丟第一張
         if self.hasput==False:
-            # self.arena.place_card(self.player.put_card(0),8,20,self.player.type)
-            # self.arena.place_card(self.enemy.put_card(0),8,10,self.enemy.type)
-            self.arena.place_card(Character("Giant"),5,12,self.enemy.type)
-            self.arena.place_card(Character("Minions"),5,8,self.enemy.type)
-            self.arena.place_card(Character("Giant"),8,18,self.player.type)
+            self.arena.place_card(self.player.put_card(0),8,20,self.player.type)
+            self.arena.place_card(self.enemy.put_card(0),8,10,self.enemy.type)
+            # # self.arena.place_card(Character("Prince"),5,12,self.enemy.type)
+            # # self.arena.place_card(Building("Cannon"),8,20,self.player.type)
+            # self.arena.place_card(Building("Cannon"),8,10,self.enemy.type)
+            # self.arena.place_card(Character("Giant"),5,18,self.player.type)
             self.hasput=True
         
         self.arena.update()

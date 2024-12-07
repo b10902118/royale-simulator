@@ -1,11 +1,10 @@
 import pygame
 import numpy as np
+from Constant import GRID_WIDTH,GRID_HEIGHT,MAP_SIZE,DELTA_TIME
+from building import Building
 from character import Character
 from projectile import Projectile
 
-GRID_WIDTH=22.5
-GRID_HEIGHT=16
-MAP_SIZE=(18,32)
 # 顏色
 GREEN = (102, 204, 0)
 BROWN = (139, 69, 19)
@@ -18,8 +17,6 @@ BLACK = (0, 0, 0)
 PINK = (189,52,205)
 ROAD_COLOR = (182,157,102)
 
-fps=30
-DELTA_TIME=1/fps
 
 class KingTower():
     def __init__(self,X,Y,W,H,name="Main Tower",type="blue"):
@@ -280,7 +277,7 @@ class PrincessTower():
 class Bridge():
     def __init__(self,X,Y,name="left bridge"):
         self.name=name
-        self.W,self.H=2*GRID_WIDTH, 3*GRID_HEIGHT
+        self.W,self.H=2.5*GRID_WIDTH, 2*GRID_HEIGHT
         self.posX=X+self.W/2
         self.posY=Y+self.H/2
 
@@ -335,7 +332,10 @@ def get_map_boundaries():
     
         
 class Arena():
-    def __init__(self):
+    def __init__(self,player,enemy):
+        self.player=player
+        self.enemy=enemy
+        
         # 玩家和敵人的主堡（4x4）
         self.player_castle = KingTower(8*GRID_WIDTH, 37.5*GRID_HEIGHT, 4*GRID_WIDTH,4*GRID_HEIGHT,name="Player Main Tower",type="blue")
         self.enemy_castle = KingTower(8*GRID_WIDTH, 11.5*GRID_HEIGHT, 4*GRID_WIDTH,4*GRID_HEIGHT,name="Enemy Main Tower",type="red")
@@ -431,49 +431,54 @@ class Arena():
         
             
         
-    def place_card(self,card: Character ,GridX,GridY,type="player"):
+    def place_card(self,card,GridX,GridY,_type="player"):
         if card!=None:
             px,py=self.Grid_to_XYpos(GridX,GridY)
-            print(f"{type} place card:{card.name},(Gx,Gy)=({GridX},{GridY}),(posx,posy)=({px},{py})")
-            if card.summon_num==1:#Single Unit
-                card.arena=self
-                card.enemy_left_tower=self.enemy_left_tower if type=="player" else self.player_left_tower
-                card.enemy_right_tower=self.enemy_right_tower if type=="player" else self.player_right_tower
-                card.enemy_main_tower=self.enemy_castle if type=="player" else self.player_castle
-                card.left_bridge=self.left_bridge
-                card.right_bridge=self.right_bridge
-                card.type=type
-                card.posX=px
-                card.posY=py
-                self.player_queue.append(card) if type=="player" else self.enemy_queue.append(card)
-            else:#一張卡多個角色
-                enemy_left_tower=self.enemy_left_tower if type=="player" else self.player_left_tower
-                enemy_right_tower=self.enemy_right_tower if type=="player" else self.player_right_tower
-                enemy_main_tower=self.enemy_castle if type=="player" else self.player_castle
-                if card.name=="GoblinGang":
-                    for i in [2,3,4]:
-                        c_i=Character("Goblins",self,enemy_left_tower,enemy_right_tower,enemy_main_tower,self.left_bridge,self.right_bridge,pos_x=px+multiple_army_pos_offset[card.summon_num][i][0],pos_y=py+multiple_army_pos_offset[card.summon_num][i][1],type=type)
-                        self.avoid_out_of_bound(c_i)
-                        self.player_queue.append(c_i) if type=="player" else self.enemy_queue.append(c_i)
-                    for i in [0,1]:
-                        c_i=Character("SpearGoblins",self,enemy_left_tower,enemy_right_tower,enemy_main_tower,self.left_bridge,self.right_bridge,pos_x=px+multiple_army_pos_offset[card.summon_num][i][0],pos_y=py+multiple_army_pos_offset[card.summon_num][i][1],type=type)
-                        self.avoid_out_of_bound(c_i)
-                        self.player_queue.append(c_i) if type=="player" else self.enemy_queue.append(c_i)
-                
-                else:    
-                    for i in range(card.summon_num):
-                        c_i=Character(card.name,self,enemy_left_tower,enemy_right_tower,enemy_main_tower,self.left_bridge,self.right_bridge,pos_x=px+multiple_army_pos_offset[card.summon_num][i][0],pos_y=py+multiple_army_pos_offset[card.summon_num][i][1],type=type)
-                        self.avoid_out_of_bound(c_i)
-                        self.player_queue.append(c_i) if type=="player" else self.enemy_queue.append(c_i)
-            
+            print(f"{_type} place card:{card.name},(Gx,Gy)=({GridX},{GridY}),(posx,posy)=({px},{py})")
+            if type(card)==Character:
+                if card.summon_num==1:#Single Unit
+                    card.arena=self
+                    card.enemy_left_tower=self.enemy_left_tower if _type=="player" else self.player_left_tower
+                    card.enemy_right_tower=self.enemy_right_tower if _type=="player" else self.player_right_tower
+                    card.enemy_main_tower=self.enemy_castle if _type=="player" else self.player_castle
+                    card.left_bridge=self.left_bridge
+                    card.right_bridge=self.right_bridge
+                    card.type=_type
+                    card.posX=px
+                    card.posY=py
+                    self.player_queue.append(card) if _type=="player" else self.enemy_queue.append(card)
+                else:#一張卡多個角色
+                    enemy_left_tower=self.enemy_left_tower if _type=="player" else self.player_left_tower
+                    enemy_right_tower=self.enemy_right_tower if _type=="player" else self.player_right_tower
+                    enemy_main_tower=self.enemy_castle if _type=="player" else self.player_castle
+                    if card.name=="GoblinGang":
+                        for i in [2,3,4]:
+                            c_i=Character("Goblins",self,enemy_left_tower,enemy_right_tower,enemy_main_tower,self.left_bridge,self.right_bridge,pos_x=px+multiple_army_pos_offset[card.summon_num][i][0],pos_y=py+multiple_army_pos_offset[card.summon_num][i][1],type=_type)
+                            self.avoid_out_of_bound(c_i)
+                            self.player_queue.append(c_i) if _type=="player" else self.enemy_queue.append(c_i)
+                        for i in [0,1]:
+                            c_i=Character("SpearGoblins",self,enemy_left_tower,enemy_right_tower,enemy_main_tower,self.left_bridge,self.right_bridge,pos_x=px+multiple_army_pos_offset[card.summon_num][i][0],pos_y=py+multiple_army_pos_offset[card.summon_num][i][1],type=_type)
+                            self.avoid_out_of_bound(c_i)
+                            self.player_queue.append(c_i) if _type=="player" else self.enemy_queue.append(c_i)
+                    
+                    else:    
+                        for i in range(card.summon_num):
+                            c_i=Character(card.name,self,enemy_left_tower,enemy_right_tower,enemy_main_tower,self.left_bridge,self.right_bridge,pos_x=px+multiple_army_pos_offset[card.summon_num][i][0],pos_y=py+multiple_army_pos_offset[card.summon_num][i][1],type=_type)
+                            self.avoid_out_of_bound(c_i)
+                            self.player_queue.append(c_i) if _type=="player" else self.enemy_queue.append(c_i)
+                            
+            elif type(card)==Building:
+                card.initiate(px,py)
+                card.type=_type
+                self.player_queue.append(card) if _type=="player" else self.enemy_queue.append(card)
                 
         
     def update(self):
-        # move & attack
+        #card move & attack
         for p in self.player_queue:
-            p.act(self.enemy_queue,self.player_queue,self)
+            p.act(self.enemy_queue,self.player_queue,self) if type(p)==Character else p.act(self.enemy_queue,self)
         for q in self.enemy_queue:
-            q.act(self.player_queue,self.enemy_queue,self)
+            q.act(self.player_queue,self.enemy_queue,self) if type(q)==Character else q.act(self.player_queue,self)
             
         #tower attack
         if self.player_castle.life<self.player_castle.total_life:

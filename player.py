@@ -1,10 +1,19 @@
-from character import Character,DELTA_TIME
+from Constant import DELTA_TIME
+from character import Character
+from building import Building
 import random
     
     
 class Player():
     def __init__(self,deck=["Barbarians","Minions","Giant","Knight","Pekka","SpearGoblins","Bats","Witch"],type="player"):
-        self.deck=[Character(name,type=type) for name in deck]
+        self.deck=[]
+        for name in deck:
+            try:
+                c=Character(name)
+                self.deck.append(c)
+            except:
+                b=Building(name)
+                self.deck.append(b)
         random.shuffle(self.deck)
         
         self.type=type

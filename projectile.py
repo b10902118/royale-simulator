@@ -1,13 +1,10 @@
 import csv,math
 import pygame
 import numpy as np
-
-GRID_WIDTH=22.5
-GRID_HEIGHT=16
+from Constant import GRID_WIDTH,GRID_HEIGHT,DELTA_TIME
 
 ORANGE = (255, 165, 0)
-fps=30
-DELTA_TIME=1/fps
+
 
 def read_projectiles_csv(file_path):
     projectiles_data = {}
