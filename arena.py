@@ -1,9 +1,10 @@
 import pygame
 import numpy as np
-from Constant import GRID_WIDTH,GRID_HEIGHT,MAP_SIZE,DELTA_TIME
+from Constant import GRID_WIDTH,GRID_HEIGHT,MAP_SIZE,DELTA_TIME,RAGE_PURPLE,SLOW_BLUE,RAGE_SLOW_MIXED
 from building import Building
 from character import Character
 from projectile import Projectile
+from spells import Spell,Arrow,Fireball,Rocket,Rage,Heal,Poison
 
 # 顏色
 GREEN = (102, 204, 0)
@@ -40,6 +41,16 @@ class KingTower():
         self.Projectile="KingProjectile"
         self.target=None
         
+        self.last_rage_time=0
+        self.has_rage=False
+        self.in_rage=False
+        
+        self.last_slow_time=0
+        self.has_slow=False
+        self.need_slow=False
+        
+        self.original_HitSpeed=self.attack_speed
+        
     def is_destroyed(self):
         return self.life<=0   
     
@@ -47,6 +58,26 @@ class KingTower():
         self.current_time = pygame.time.get_ticks()
         min_dist=100000000
         attack_target=None
+        if self.in_rage:
+            if self.has_rage==False:
+                self.has_rage=True
+                self.attack_speed*=0.65
+            if self.current_time-self.last_rage_time>2000:
+                self.in_rage=False
+                self.has_rage=False
+                self.attack_speed=self.original_HitSpeed
+
+            
+        if self.need_slow:
+            if self.has_slow==False:
+                self.has_slow=True
+                self.attack_speed*=1.35
+            if self.current_time-self.last_slow_time>2000:
+                self.need_slow=False
+                self.has_slow=False
+                self.attack_speed=self.original_HitSpeed
+
+                 
         for e in enemys:
             ellipse_sight = {"cx": self.gameObject.centerx, "cy": self.gameObject.centery, "a": self.attack_range / 1000 * GRID_WIDTH, "b": self.attack_range / 1000 * GRID_HEIGHT}  
             ellipse_enemy = {"cx": e.posX, "cy": e.posY, "a": 2*e.CollisionRadius/1000*GRID_WIDTH, "b": 2*e.CollisionRadius/1000*GRID_HEIGHT}
@@ -106,8 +137,16 @@ class KingTower():
             if ((x - cx1) ** 2) / a1 ** 2 + ((y - cy1) ** 2) / b1 ** 2 <= 1:
                 return True  # 存在交集
 
-        return False  # 無交集   
+        return False  # 無交集 
+      
+    def rage_buff(self):
+        self.last_rage_time=self.current_time
+        self.in_rage=True
     
+    def slow_down_debuff(self):
+        self.last_slow_time=self.current_time
+        self.need_slow=True
+        
     def draw(self,screen,enemis_in_range=False):
         pygame.draw.rect(screen, BLUE if self.type=="blue" else RED, self.gameObject)
         # Draw health bar (background in gray and current health in corresponding color)
@@ -130,8 +169,16 @@ class KingTower():
                          (self.gameObject.x, health_bar_y, health_bar_width * health_percentage, health_bar_height))
         
         # Display the current health value in the middle of the health bar
-        health_text = f"{self.life}/{self.total_life}"
-        text_surface = self.font.render(health_text, True, (255, 255, 255))  # White text
+        health_text = f"{round(self.life)}/{self.total_life}"
+        if self.in_rage and self.need_slow:
+            color=RAGE_SLOW_MIXED
+        elif self.in_rage:
+            color=RAGE_PURPLE
+        elif self.need_slow:
+            color=SLOW_BLUE
+        else:
+            color=(255,255,255)
+        text_surface = self.font.render(health_text, True, color)  # White text
         text_rect = text_surface.get_rect(center=(self.gameObject.centerx, health_bar_y + health_bar_height // 2))
         screen.blit(text_surface, text_rect)
 
@@ -167,6 +214,16 @@ class PrincessTower():
         self.Projectile="TowerPrincessProjectile"
         self.target=None
         
+        self.last_rage_time=0
+        self.has_rage=False
+        self.in_rage=False
+        
+        self.last_slow_time=0
+        self.has_slow=False
+        self.need_slow=False
+        
+        self.original_HitSpeed=self.attack_speed
+        
     def is_destroyed(self):
         return self.life<=0
     
@@ -174,6 +231,27 @@ class PrincessTower():
         self.current_time = pygame.time.get_ticks()
         min_dist=100000000
         attack_target=None
+        if self.in_rage:
+            if self.has_rage==False:
+                self.has_rage=True
+                self.attack_speed*=0.65
+            if self.current_time-self.last_rage_time>2000:
+                self.in_rage=False
+                self.has_rage=False
+                self.attack_speed=self.original_HitSpeed
+
+            
+        if self.need_slow:
+            if self.has_slow==False:
+                self.has_slow=True
+                self.attack_speed*=1.35 
+            if self.current_time-self.last_slow_time>2000:
+                self.need_slow=False
+                self.has_slow=False
+                self.attack_speed=self.original_HitSpeed
+
+        
+        
         for e in enemys:
             ellipse_sight = {"cx": self.gameObject.centerx, "cy": self.gameObject.centery, "a": self.attack_range / 1000 * GRID_WIDTH, "b": self.attack_range / 1000 * GRID_HEIGHT}  
             ellipse_enemy = {"cx": e.posX, "cy": e.posY, "a": 3*e.CollisionRadius/1000*GRID_WIDTH, "b": 3*e.CollisionRadius/1000*GRID_HEIGHT}
@@ -235,6 +313,13 @@ class PrincessTower():
 
         return False  # 無交集
     
+    def rage_buff(self):
+        self.last_rage_time=self.current_time
+        self.in_rage=True
+    
+    def slow_down_debuff(self):
+        self.last_slow_time=self.current_time
+        self.need_slow=True
         
     def draw(self,screen):
         pygame.draw.rect(screen, BLUE if self.type=="blue" else RED, self.gameObject)
@@ -258,8 +343,16 @@ class PrincessTower():
                          (self.gameObject.x, health_bar_y, health_bar_width * health_percentage, health_bar_height))
         
         # Display the current health value in the middle of the health bar
-        health_text = f"{self.life}/{self.total_life}"
-        text_surface = self.font.render(health_text, True, (255, 255, 255))  # White text
+        health_text = f"{round(self.life)}/{self.total_life}"
+        if self.in_rage and self.need_slow:
+            color=RAGE_SLOW_MIXED
+        elif self.in_rage:
+            color=RAGE_PURPLE
+        elif self.need_slow:
+            color=SLOW_BLUE
+        else:
+            color=(255,255,255)
+        text_surface = self.font.render(health_text, True, color)  # White text
         text_rect = text_surface.get_rect(center=(self.gameObject.centerx, health_bar_y + health_bar_height // 2))
         screen.blit(text_surface, text_rect)
 
@@ -364,6 +457,8 @@ class Arena():
         self.enemy_queue=[]
         
         self.all_projectile=[]
+        
+        self.all_spell=[]
     
 
         
@@ -471,7 +566,11 @@ class Arena():
                 card.initiate(px,py)
                 card.type=_type
                 self.player_queue.append(card) if _type=="player" else self.enemy_queue.append(card)
-                
+            
+            elif issubclass(type(card),Spell):
+                card.__init__(targetX=px,targetY=py,type=_type)
+                self.all_spell.append(card)
+                    
         
     def update(self):
         #card move & attack
@@ -479,6 +578,10 @@ class Arena():
             p.act(self.enemy_queue,self.player_queue,self) if type(p)==Character else p.act(self.enemy_queue,self)
         for q in self.enemy_queue:
             q.act(self.player_queue,self.enemy_queue,self) if type(q)==Character else q.act(self.player_queue,self)
+        
+        for s in self.all_spell:
+            s.act(self)
+        
             
         #tower attack
         if self.player_castle.life<self.player_castle.total_life:
@@ -494,16 +597,31 @@ class Arena():
         # remove dead army
         for p in self.player_queue: 
             if p.life <= 0:
+                p.dead_effect(self)
                 self.player_queue.remove(p)
                 
         for q in self.enemy_queue: 
             if q.life <= 0:
+                q.dead_effect(self)
                 self.enemy_queue.remove(q)
+        
+        for s in self.all_spell:
+            if type(s)==Arrow:
+                if s.end_cnt==s.hit_cnt:
+                    self.all_spell.remove(s)
+            elif type(s)==Fireball or type(s)==Rocket:
+                if s.has_attacked:
+                    self.all_spell.remove(s)
+            elif type(s)==Rage or type(s)==Heal or type(s)==Poison:
+                if s.timer>s.duration:
+                    self.all_spell.remove(s)
                 
         for proj in self.all_projectile:
             proj.update(self)
             if proj.destroyed:
                 self.all_projectile.remove(proj)
+
+            
     
     def update_screen(self,screen):            
         # update game window
@@ -515,6 +633,9 @@ class Arena():
             
         for proj in self.all_projectile:
             proj.draw(screen)
+        
+        for s in self.all_spell:
+            s.draw(screen)
             
         
     def draw_castles_and_towers(self,screen):

@@ -155,6 +155,8 @@ class Projectile():
             self.destroyed=True
             if self.AoeToGround==False and self.AoeToAir==False:#單體攻擊
                 self.target.life -= self.Damage
+                if self.name=="ice_wizardProjectile":
+                    self.target.slow_down_debuff()
             else:#AOE攻擊
                 enemy_troop=arena.enemy_queue if self.type=="player" else arena.player_queue
                 enemy_left_tower=arena.enemy_left_tower if self.type=="player" else arena.player_left_tower
@@ -166,14 +168,20 @@ class Projectile():
                 if self.AoeToGround==True:
                     for g in ground_enemys:
                         if ((g.posX-self.target.posX) ** 2) / (self.Radius/1000*GRID_WIDTH) ** 2 + ((g.posY - self.target.posY) ** 2) / (self.Radius/1000*GRID_HEIGHT) ** 2 <= 1:
-                            g.life-=self.Damage     
+                            g.life-=self.Damage
+                            if self.name=="ice_wizardProjectile":
+                                g.slow_down_debuff()     
                 if self.AoeToAir==True:
                     for a in air_enemys:
                         if ((a.posX-self.target.posX) ** 2) / (self.Radius/1000*GRID_WIDTH) ** 2 + ((a.posY - self.target.posY) ** 2) / (self.Radius/1000*GRID_HEIGHT) ** 2 <= 1:
                             a.life-=self.Damage
+                            if self.name=="ice_wizardProjectile":
+                                a.slow_down_debuff()
                 for t in [enemy_left_tower,enemy_right_tower,enemy_main_tower]:
                     if ((t.posX-self.posX) ** 2) / (self.Radius/1000*GRID_WIDTH) ** 2 + ((t.posY - self.posY) ** 2) / (self.Radius/1000*GRID_HEIGHT) ** 2 <= 1:
-                            t.life-=self.Damage  
+                            t.life-=self.Damage
+                            if self.name=="ice_wizardProjectile":
+                                t.slow_down_debuff()  
                 
         else:
             diff_x=self.target.posX-self.posX

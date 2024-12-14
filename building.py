@@ -2,7 +2,7 @@ from projectile import Projectile
 import csv,os
 import pygame
 import numpy as np
-from Constant import GRID_WIDTH,GRID_HEIGHT,DELTA_TIME
+from Constant import GRID_WIDTH,GRID_HEIGHT,DELTA_TIME,RAGE_PURPLE,SLOW_BLUE,RAGE_SLOW_MIXED
 from character import Character
 
 BLUE = (0, 150, 238)
@@ -84,6 +84,17 @@ class Building():
         self.deck_img=pygame.image.load(f"card_img//{name}.webp") if os.path.exists(f"card_img//{name}.webp") else None
         self.font = pygame.font.SysFont("Arial", 12, bold=True)
         
+        self.last_rage_time=0
+        self.has_rage=False
+        self.in_rage=False
+        
+        self.last_slow_time=0
+        self.has_slow=False
+        self.need_slow=False
+        
+        self.original_HitSpeed=self.HitSpeed
+        self.original_spawn_speed=self.SpawnPauseTime
+        
                 
     def __str__(self):
         # Build a string representation of the object
@@ -96,6 +107,31 @@ class Building():
     
     def act(self,enemy_troops,arena):
         self.current_time = pygame.time.get_ticks()
+        
+        if self.in_rage:
+            if self.has_rage==False:
+                self.has_rage=True
+                self.SpawnPauseTime*=0.65
+                self.HitSpeed*=0.65
+            if self.current_time-self.last_rage_time>2000:
+                self.in_rage=False
+                self.has_rage=False
+                self.SpawnPauseTime=self.original_spawn_speed
+                self.HitSpeed=self.original_HitSpeed
+
+            
+        if self.need_slow:
+            if self.has_slow==False:
+                self.has_slow=True
+                self.SpawnPauseTime*=1.35
+                self.HitSpeed*=1.35 
+            if self.current_time-self.last_slow_time>2000:
+                self.need_slow=False
+                self.has_slow=False
+                self.SpawnPauseTime=self.original_spawn_speed
+                self.HitSpeed=self.original_HitSpeed
+
+        
         if self.current_time<self.DeployTime:
             self.msg="Deploying..."
         else:
@@ -197,7 +233,14 @@ class Building():
                 return True
             else:
                 return False
-            
+    
+    def rage_buff(self):
+        self.last_rage_time=self.current_time
+        self.in_rage=True
+    
+    def slow_down_debuff(self):
+        self.last_slow_time=self.current_time
+        self.need_slow=True        
             
     def calc_distance(self,X1,X2,Y1,Y2):
         return ((X1-X2)**2+(Y1-Y2)**2)**0.5
@@ -279,7 +322,15 @@ class Building():
         # 5. 顯示動作
         if show_act:
             font = pygame.font.Font(None, 20)  # 使用默認字體，大小為 24
-            msg_surface = font.render(self.msg, True, (255,255,255))  # 白色字體
+            if self.in_rage and self.need_slow:
+                color=RAGE_SLOW_MIXED
+            elif self.in_rage:
+                color=RAGE_PURPLE
+            elif self.need_slow:
+                color=SLOW_BLUE
+            else:
+                color=(255,255,255)
+            msg_surface = font.render(self.msg, True, color)  # 白色字體
             msg_rect = msg_surface.get_rect(center=(self.posX, self.posY - img_rect.height // 2 - 3*health_bar_height))  # 名字在 deck_img 上方
             screen.blit(msg_surface, msg_rect)
 

@@ -1,13 +1,14 @@
 import os,csv,math,random
 import pygame
 import numpy as np
-from Constant import GRID_WIDTH,GRID_HEIGHT,DELTA_TIME
+from Constant import GRID_WIDTH,GRID_HEIGHT,DELTA_TIME,RAGE_PURPLE,SLOW_BLUE,RAGE_SLOW_MIXED
 from projectile import Projectile
 import building
 
 
 BLUE = (0, 150, 238)
 RED = (255, 85, 85)
+
 
 
 # Function to read the CSV file and load character data into a dictionary
@@ -88,6 +89,18 @@ class Character:
         self.current_time = pygame.time.get_ticks()
         self.last_attack_time = 0
         
+        self.last_pushback_time=0
+        self.need_pushback=False
+        self.pushback_time=650
+        
+        self.last_rage_time=0
+        self.has_rage=False
+        self.in_rage=False
+        
+        self.last_slow_time=0
+        self.has_slow=False
+        self.need_slow=False
+        
         self.sight_line_width=1
         self.attack_line_width=1
         
@@ -105,6 +118,10 @@ class Character:
 
             
         self.can_fly=hasattr(self, 'FlyingHeight')
+        self.IgnorePushback=hasattr(self,"IgnorePushback")
+        self.original_HitSpeed=self.HitSpeed
+        self.original_Speed=self.Speed
+            
         if hasattr(self,"AoeToGround" )==False:
             self.AoeToGround=False
         if hasattr(self,"AoeToAir")==False:
@@ -118,8 +135,41 @@ class Character:
     
     def act(self,enemy_troops,player_troops,arena):
         self.current_time = pygame.time.get_ticks()
-        if self.current_time<self.DeployTime:
+        
+        if self.in_rage:
+            if self.has_rage==False:
+                self.has_rage=True
+                self.Speed*=1.35
+                self.HitSpeed*=0.65
+            if self.current_time-self.last_rage_time>2000:
+                self.in_rage=False
+                self.has_rage=False
+                self.Speed=self.original_Speed
+                self.HitSpeed=self.original_HitSpeed
+
+            
+        if self.need_slow:
+            if self.has_slow==False:
+                self.has_slow=True
+                self.Speed*=0.65
+                self.HitSpeed*=1.35
+            if self.current_time-self.last_slow_time>2000:
+                self.need_slow=False
+                self.has_slow=False
+                self.Speed=self.original_Speed
+                self.HitSpeed=self.original_HitSpeed
+   
+        
+        if self.current_time<self.DeployTime or self.need_pushback:
             self.msg="Deploying..."
+            if self.need_pushback:
+                if self.current_time-self.last_pushback_time>self.pushback_time:
+                    self.need_pushback=False
+                ratio=1-(self.current_time-self.last_pushback_time)/self.pushback_time#推的距離線性遞減
+                self.posX+=self.push_vx*ratio*self.push_dist/1000*GRID_WIDTH*DELTA_TIME/(0.001*self.pushback_time)
+                self.posY+=self.push_vy*ratio*self.push_dist/1000*GRID_HEIGHT*DELTA_TIME/(0.001*self.pushback_time)
+                self.avoid_collisions(enemy_troops+player_troops,arena)
+                self.msg="Pushed back"
         else:
             target=self.find_target(enemy_troops)
             if self.target==None:
@@ -327,7 +377,21 @@ class Character:
                         self.posY += (other.Mass/self.Mass)*dy * overlap *DELTA_TIME #*1.5
                         other.posX -= (self.Mass/other.Mass)*dx * overlap *DELTA_TIME#*1.5
                         other.posY -= (self.Mass/other.Mass)*dy * overlap *DELTA_TIME#*1.5
-        
+    
+    def pushback(self,vectorx,vectory,dist):
+        self.need_pushback=True
+        self.last_pushback_time=self.current_time
+        self.push_vx=vectorx
+        self.push_vy=vectory
+        self.push_dist=dist
+    
+    def rage_buff(self):
+        self.last_rage_time=self.current_time
+        self.in_rage=True
+    
+    def slow_down_debuff(self):
+        self.last_slow_time=self.current_time
+        self.need_slow=True
     
     def push_x(self,px):
         overlap=px-self.posX
@@ -589,7 +653,8 @@ class Character:
             self.posX += unit_vector_x * (self.Speed / 100 * GRID_WIDTH) * DELTA_TIME
             self.posY += unit_vector_y * (self.Speed / 100 * GRID_HEIGHT) * DELTA_TIME
         
-
+    def dead_effect(self,arena):
+        "Not implement"
     
     def draw_elispse(self,screen,color,X,Y,range,line_thickness = 2):
         attack_range_long_axis = (range +0.5*self.CollisionRadius)/1000 *2* GRID_WIDTH  # Long axis of the ellipse
@@ -639,12 +704,19 @@ class Character:
         # 5. 顯示動作
         if show_act:
             font = pygame.font.Font(None, 20)  # 使用默認字體，大小為 24
-            msg_surface = font.render(self.msg, True, (255,255,255))  # 白色字體
+            if self.in_rage and self.need_slow:
+                color=RAGE_SLOW_MIXED
+            elif self.in_rage:
+                color=RAGE_PURPLE
+            elif self.need_slow:
+                color=SLOW_BLUE
+            else:
+                color=(255,255,255)
+            
+            msg_surface = font.render(self.msg, True, color)  # 白色字體
             msg_rect = msg_surface.get_rect(center=(self.posX, self.posY - img_rect.height // 2 - 3*health_bar_height))  # 名字在 deck_img 上方
             screen.blit(msg_surface, msg_rect)
     
-    def get_injury(self,value):
-        self.life-=value
     
     def get_heal(self,value):
         self.life+=value
@@ -652,7 +724,7 @@ class Character:
     
 if __name__=="__main__":
     pygame.init()
-    print(Character("Giant"))
+    print(Character("Knight"))
     # for k in sorted(list(Character_data.keys())):
     #     if k !='string':
     #         c=Character(k)

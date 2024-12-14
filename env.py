@@ -1,4 +1,4 @@
-import gym
+import gym,random
 from gym import spaces
 import numpy as np
 import pygame
@@ -6,7 +6,7 @@ from arena import GRID_HEIGHT,GRID_WIDTH,Arena
 from character import Character
 from building import Building
 from player import Player
-
+from spells import Arrow,Fireball,Rocket,Rage,Heal,Poison
 
 class GameWindow():
     def __init__(self):
@@ -157,14 +157,16 @@ class ClashRoyaleEnv(gym.Env):
         done = False
         info = {}
 
-        #先暫時丟第一張
+        #先暫時隨便丟一張
         if self.hasput==False:
-            self.arena.place_card(self.player.put_card(0),8,20,self.player.type)
-            self.arena.place_card(self.enemy.put_card(0),8,10,self.enemy.type)
-            # # self.arena.place_card(Character("Prince"),5,12,self.enemy.type)
-            # # self.arena.place_card(Building("Cannon"),8,20,self.player.type)
+            self.arena.place_card(self.player.put_card(random.randint(0,3)),8,20,self.player.type)
+            self.arena.place_card(self.enemy.put_card(random.randint(0,3)),8,10,self.enemy.type)
+            
+            # self.arena.place_card(Character("IceWizard"),6,13,self.player.type)
+            # self.arena.place_card(Heal(),6,9,self.player.type)
+            
             # self.arena.place_card(Building("Cannon"),8,10,self.enemy.type)
-            # self.arena.place_card(Character("Giant"),5,18,self.player.type)
+            # self.arena.place_card(Character("Giant"),5,15,self.player.type)
             self.hasput=True
         
         self.arena.update()
