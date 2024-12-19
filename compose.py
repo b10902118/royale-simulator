@@ -4,12 +4,12 @@ import glob
 import random
 from os import path, makedirs
 
-background = Image.open("/home/bill/cr/detector/arena_main.png")
+background = Image.open("arena_main.png")
 
 base_dirs = [
-    "/home/bill/cr/detector/giant/",
-    "/home/bill/cr/detector/musketeer/",
-    "/home/bill/cr/detector/mini_pekka/",
+    "giant/",
+    "musketeer/",
+    "mini_pekka/",
 ]
 
 cls_num = {"giant": 0, "musketeer": 1, "mini_pekka": 2}
@@ -19,7 +19,7 @@ for base_dir in base_dirs:
     image_paths += glob.glob(base_dir + "*.png")
 
 
-output_dir = "/home/bill/cr/detector/data/"
+output_dir = "data/"
 images_dir = path.join(output_dir, "images")
 labels_dir = path.join(output_dir, "labels")
 if not path.exists(images_dir):
