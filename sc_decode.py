@@ -7,21 +7,25 @@ from PIL import Image, ImageDraw
 import os
 from os import path
 import argparse
+import json
+import numpy as np
 
 # Fixed version for both highres and lowres tex (also re-written for better support)
 # Thanks to umop for his script and Knobse for KosmoSc and help
 
 
-def WriteShape(spritedata, sheetdata, ShapeCount, TotalsTexture, filein):
+def WriteShape(spritedata, sheetdata, ShapeCount, TotalsTexture, filein, sheetimage):
     pathout = path_out(filein)
 
     maxrange = len(str(ShapeCount))
 
     # Load spritesheet images
-    sheetimage = [
-        Image.open(f"{filein}_tex{'_' * i}.png").convert("RGBA")
-        for i in range(TotalsTexture)
-    ]
+    # sheetimage = [
+    #     Image.open(f"{filein}_tex{'_' * i}.png").convert("RGBA")
+    #     for i in range(TotalsTexture)
+    # ]
+
+    centers = {}
 
     # Process each shape
     for shape_index, shape in enumerate(spritedata):
@@ -48,7 +52,7 @@ def WriteShape(spritedata, sheetdata, ShapeCount, TotalsTexture, filein):
                 shape["Bottom"] = min(shape["Bottom"], tmpY)
                 shape["Right"] = max(shape["Right"], tmpX)
 
-            # Update sheet point bounds
+                # Update sheet point bounds
             for point in region["SheetPoints"]:
                 tmpX, tmpY = point["x"], point["y"]
 
@@ -91,6 +95,10 @@ def WriteShape(spritedata, sheetdata, ShapeCount, TotalsTexture, filein):
                 None,
             )
 
+            # print(len(shape["Regions"]))
+            if len(shape["Regions"]) != 1:
+                continue
+
             for region in shape["Regions"]:
                 polygon = [(point["x"], point["y"]) for point in region["SheetPoints"]]
 
@@ -121,8 +129,36 @@ def WriteShape(spritedata, sheetdata, ShapeCount, TotalsTexture, filein):
                 pasteTop = maxAbove - region["RegionZeroY"]
                 outImage.paste(tmpRegion, (pasteLeft, pasteTop), tmpRegion)
 
+            # Check if over 70% of the image pixels are transparent
+            total_pixels = outImage.width * outImage.height
+            if total_pixels == 0:
+                continue
+            transparent_pixels = sum(1 for pixel in outImage.getdata() if pixel[3] == 0)
+            if transparent_pixels / total_pixels > 0.7:
+                print(f"Shape {shape_index} is over 70% transparent.")
+                continue
+
             # print(f'{shape["Top"]} {shape["Left"]} {shape["Bottom"]} {shape["Right"]}')
+
+            # x = round(
+            #    abs(shape["Left"]) / (shape["Right"] - shape["Left"]) * outImage.width
+            # )
+            # y = round(
+            #    abs(shape["Bottom"])
+            #    / (shape["Top"] - shape["Bottom"])
+            #    * outImage.height
+            # )
+
+            # Draw center
+            # assert shape["Top"] > 0
             if shape["Top"] > 0:
+                # print(
+                #    f"left: {shape['Left']}, right: {shape['Right']}, top: {shape['Top']}, bottom: {shape['Bottom']}"
+                # )
+                # centered at 0,0, extend left, right, top, bottom
+                # print(outImage.width / (shape["Right"] - shape["Left"]))
+
+                # to image x, y
                 x = round(
                     abs(shape["Left"])
                     / (shape["Right"] - shape["Left"])
@@ -133,14 +169,33 @@ def WriteShape(spritedata, sheetdata, ShapeCount, TotalsTexture, filein):
                     / (shape["Top"] - shape["Bottom"])
                     * outImage.height
                 )
-                draw = ImageDraw.Draw(outImage)
-                draw.ellipse(
-                    (x - 5, y - 5, x + 5, y + 5), outline="red", fill="red", width=1
-                )
 
-            outImage.save(
-                f"{pathout}/{filein}_sprite_{str(shape_index).rjust(maxrange, '0')}.png"
-            )
+                # clean margin
+                outImage_np = np.array(outImage)
+                outImage_np[outImage_np[:, :, 3] < 100] = [0, 0, 0, 0]
+                # enhance alpha
+                outImage_np[outImage_np[:, :, 3] >= 200, 3] = 255
+                outImage = Image.fromarray(outImage_np)
+
+                # Crop the image to remove any extra transparent pixels
+                bbox = outImage.getbbox()
+                # print(bbox)
+                # print(outImage.width, outImage.height)
+                outImage = outImage.crop(bbox)
+                # Adjust the center coordinates based on the cropped bounding box
+                x -= bbox[0]
+                y -= bbox[1]
+                centers[shape_index] = (x / outImage.width, y / outImage.height)
+
+                # draw = ImageDraw.Draw(outImage)
+                # draw.ellipse(
+                #    (x - 5, y - 5, x + 5, y + 5), outline="red", fill="red", width=1
+                # )
+
+                outImage.save(f"{pathout}/{shape_index}.png")
+
+    with open(f"{pathout}/centers.json", "w") as f:
+        json.dump(centers, f, indent=4)
 
     print("done")
 
@@ -280,16 +335,25 @@ def process(data, filename):
     print(f"{TotalsTexture}")
     for x in range(TotalsTexture):
         if os.path.exists(filename + "_tex" + (x * "_") + ".png"):
+            print(f"appending {x}")
             sheetimage.append(
                 Image.open(filename + "_tex" + (x * "_") + ".png").convert("RGBA")
             )
         else:
-            print(
-                "{} don't exist : if your png files is named *_lowres_tex or *_highres_tex please rename it to *_tex".format(
-                    filename + "_tex" + (x * "_") + ".png"
+            lowres_filename = filename + "_lowres_tex.png"
+            highres_filename = filename + "_highres_tex.png"
+            if x == 0 and os.path.exists(lowres_filename):
+                sheetimage.append(Image.open(lowres_filename).convert("RGBA"))
+            elif x == 1 and os.path.exists(highres_filename):
+                sheetimage.append(Image.open(highres_filename).convert("RGBA"))
+            else:
+                print(
+                    "process:"
+                    "{} don't exist : if your png files is named *_lowres_tex or *_highres_tex please rename it to *_tex".format(
+                        filename + "_tex" + (x * "_") + ".png"
+                    )
                 )
-            )
-            sys.exit()
+                sys.exit()
     Stream.read(5)  # 5 00 bytes
 
     ExportCount = ReadUint16(Stream)
@@ -386,61 +450,61 @@ def process(data, filename):
                     ]
 
                     for z in range(spritedata[OffsetShape]["Regions"][y]["NumPoints"]):
-                        spritedata[OffsetShape]["Regions"][y]["ShapePoints"][z][
-                            "x"
-                        ] = ReadInt32(Stream)
-                        spritedata[OffsetShape]["Regions"][y]["ShapePoints"][z][
-                            "y"
-                        ] = ReadInt32(Stream)
+                        spritedata[OffsetShape]["Regions"][y]["ShapePoints"][z]["x"] = (
+                            ReadInt32(Stream)
+                        )
+                        spritedata[OffsetShape]["Regions"][y]["ShapePoints"][z]["y"] = (
+                            ReadInt32(Stream)
+                        )
 
                     for z in range(spritedata[OffsetShape]["Regions"][y]["NumPoints"]):
-                        spritedata[OffsetShape]["Regions"][y]["SheetPoints"][z][
-                            "x"
-                        ] = ReadUint16(Stream)
-                        spritedata[OffsetShape]["Regions"][y]["SheetPoints"][z][
-                            "y"
-                        ] = ReadUint16(Stream)
+                        spritedata[OffsetShape]["Regions"][y]["SheetPoints"][z]["x"] = (
+                            ReadUint16(Stream)
+                        )
+                        spritedata[OffsetShape]["Regions"][y]["SheetPoints"][z]["y"] = (
+                            ReadUint16(Stream)
+                        )
 
                         # TODO: preserve precision. move out / 65535? -> no difference
-                        spritedata[OffsetShape]["Regions"][y]["SheetPoints"][z][
-                            "x"
-                        ] = int(
-                            (
-                                round(
-                                    spritedata[OffsetShape]["Regions"][y][
-                                        "SheetPoints"
-                                    ][z]["x"]
-                                    * (
-                                        sheetdata[
-                                            spritedata[OffsetShape]["Regions"][y][
-                                                "SheetID"
-                                            ]
-                                        ]["x"]
-                                    )
-                                    / 65535
-                                )
-                            )
-                            / i
-                        )
-                        spritedata[OffsetShape]["Regions"][y]["SheetPoints"][z][
-                            "y"
-                        ] = int(
-                            round(
+                        spritedata[OffsetShape]["Regions"][y]["SheetPoints"][z]["x"] = (
+                            int(
                                 (
-                                    spritedata[OffsetShape]["Regions"][y][
-                                        "SheetPoints"
-                                    ][z]["y"]
-                                    * (
-                                        sheetdata[
-                                            spritedata[OffsetShape]["Regions"][y][
-                                                "SheetID"
-                                            ]
-                                        ]["y"]
+                                    round(
+                                        spritedata[OffsetShape]["Regions"][y][
+                                            "SheetPoints"
+                                        ][z]["x"]
+                                        * (
+                                            sheetdata[
+                                                spritedata[OffsetShape]["Regions"][y][
+                                                    "SheetID"
+                                                ]
+                                            ]["x"]
+                                        )
+                                        / 65535
                                     )
-                                    / 65535
                                 )
+                                / i
                             )
-                            / i
+                        )
+                        spritedata[OffsetShape]["Regions"][y]["SheetPoints"][z]["y"] = (
+                            int(
+                                round(
+                                    (
+                                        spritedata[OffsetShape]["Regions"][y][
+                                            "SheetPoints"
+                                        ][z]["y"]
+                                        * (
+                                            sheetdata[
+                                                spritedata[OffsetShape]["Regions"][y][
+                                                    "SheetID"
+                                                ]
+                                            ]["y"]
+                                        )
+                                        / 65535
+                                    )
+                                )
+                                / i
+                            )
                         )
             Stream.read(5)  # TAG_END & size
             OffsetShape += 1
@@ -483,7 +547,7 @@ def process(data, filename):
             Stream.read(DataBlockSize)
             pass
 
-    WriteShape(spritedata, sheetdata, ShapeCount, TotalsTexture, filename)
+    WriteShape(spritedata, sheetdata, ShapeCount, TotalsTexture, filename, sheetimage)
 
 
 if __name__ == "__main__":

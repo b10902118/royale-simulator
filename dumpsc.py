@@ -164,16 +164,24 @@ def process_sctx(base_name, data, path):
     reader.read(reader.read_uint32())
     reader.read(52)
     logging.info(
+        "process_sctx: "
         f"file_type: {file_type}, file_size: {length}, width: {width}, height: {height}"
     )
 
     if file_type == 12:
         block_width = block_height = 4
-        pixels = reader.read()
+        pixels = data  # reader.read()
     elif file_type == 5:
-        pixels = decompress(reader.read())
+        print(f"compressed size: {len(data)}")
+        with open(os.path.join(path, f"hi.sctx"), "wb") as f:
+            f.write(data)
+        pixels = decompress(data)
+        print(f"decompressed size: {len(pixels)}")
         block_width = block_height = 8
+    elif file_type == 1:
+        process_ktx(base_name, data, path)
     else:
+        # High resolution failed
         raise Exception(f"Unknown file type '{file_type}'")
 
     pixels = texture2ddecoder.decode_astc(
@@ -206,7 +214,9 @@ def process_ktx(base_name, data, path):
             6,
             6,
         )
-    elif data_type == 171:  # VK_FORMAT_ASTC_8x8_UNORM_BLOCK
+    elif (
+        data_type == 171 or data_type == 37815
+    ):  # VK_FORMAT_ASTC_8x8_UNORM_BLOCK, COMPRESSED_RGBA_ASTC_8x8_KHR
         pixels = texture2ddecoder.decode_astc(
             image_data,
             pixel_width,
@@ -347,6 +357,7 @@ def process_sc(base_dir, base_name, data, path, old, decmopress_only=False):
         height = reader.read_uint16()
 
         logging.info(
+            "process_sc: "
             f"file_type: {file_type}, file_size: {file_size}, "
             f"sub_type: {sub_type}, width: {width}, height: {height}"
         )
@@ -365,12 +376,13 @@ def process_sc(base_dir, base_name, data, path, old, decmopress_only=False):
             pixels = bytes(pixels)
             img = create_image(width, height, pixels, sub_type)
         elif file_type == 45:
-            process_sctx(base_name, reader.read(), path)
+            process_sctx(base_name, reader.read(file_size), path)
             continue
         elif file_type == 47:
             process_file_type_47(os.path.join(base_dir, file_name), path)
             continue
         else:
+            print(f"Other file type: {file_type}")
             pixels = reader.read(file_size - 5)
             img = create_image(width, height, pixels, sub_type)
 
