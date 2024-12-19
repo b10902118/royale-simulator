@@ -38,7 +38,7 @@ def get_random_position(background_size, image_size):
 
 
 # annotations = {}
-for i in range(10):  # Generate 10 synthetic images
+for i in range(50):  # Generate 10 synthetic images
     new_image = background.copy()
 
     positions_images = []
