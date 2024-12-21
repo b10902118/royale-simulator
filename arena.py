@@ -315,11 +315,12 @@ class PrincessTower:
                 proj.initiate(
                     attack_target,
                     self.posX,
-                    (
-                        self.posY + 0.5 * self.H
-                        if self.type == "blue"
-                        else self.posY - 0.5 * self.H
-                    ),
+                    self.posY,
+                    # (
+                    #    self.posY + 0.5 * self.H
+                    #    if self.type == "blue"
+                    #    else self.posY - 0.5 * self.H
+                    # ),
                 )
                 arena.all_projectile.append(proj)
         else:
