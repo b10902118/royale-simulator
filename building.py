@@ -2,14 +2,7 @@ from projectile import Projectile
 import csv, os
 import pygame
 import numpy as np
-from Constant import (
-    GRID_WIDTH,
-    GRID_HEIGHT,
-    DELTA_TIME,
-    RAGE_PURPLE,
-    SLOW_BLUE,
-    RAGE_SLOW_MIXED,
-)
+from Constant import *
 from character import Character
 
 BLUE = (0, 150, 238)

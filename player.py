@@ -1,4 +1,4 @@
-from Constant import DELTA_TIME
+from Constant import *
 from character import Character
 from building import Building
 from spells import Arrow, Fireball, Rage, Rocket, Heal, Poison

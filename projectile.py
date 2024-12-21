@@ -1,9 +1,7 @@
 import csv, math
 import pygame
 import numpy as np
-from Constant import GRID_WIDTH, GRID_HEIGHT, DELTA_TIME
-
-ORANGE = (255, 165, 0)
+from Constant import *
 
 
 def read_projectiles_csv(file_path):

@@ -1,14 +1,7 @@
 import os, csv, math, random
 import pygame
 import numpy as np
-from Constant import (
-    GRID_WIDTH,
-    GRID_HEIGHT,
-    DELTA_TIME,
-    RAGE_PURPLE,
-    SLOW_BLUE,
-    RAGE_SLOW_MIXED,
-)
+from Constant import *
 from projectile import Projectile
 import building
 
@@ -443,7 +436,9 @@ class Character:
                 self.msg = f"Move to {target.name}"
                 self._move_to_target(target)
             else:
-                if self.is_over_bridge() == target.is_over_bridge():  # 目標和自己隔了一條河
+                if (
+                    self.is_over_bridge() == target.is_over_bridge()
+                ):  # 目標和自己隔了一條河
                     if self.is_on_the_bridge():
                         self.msg = f"Move to {target.name} (on bridge)"
                         self._move_on_the_bridge(target)
@@ -832,21 +827,25 @@ class Character:
             self.posX,
             self.left_bridge.posX,
             self.posY,
-            self.left_bridge.posY
-            if self.type == "player"
-            else self.left_bridge.posY
-            - 0.5 * self.left_bridge.H
-            - self.CollisionRadius / 1000 * GRID_HEIGHT,
+            (
+                self.left_bridge.posY
+                if self.type == "player"
+                else self.left_bridge.posY
+                - 0.5 * self.left_bridge.H
+                - self.CollisionRadius / 1000 * GRID_HEIGHT
+            ),
         )
         r_bridge_dist = self.calc_distance(
             self.posX,
             self.right_bridge.posX,
             self.posY,
-            self.right_bridge.posY
-            if self.type == "player"
-            else self.right_bridge.posY
-            - 0.5 * self.right_bridge.H
-            - self.CollisionRadius / 1000 * GRID_HEIGHT,
+            (
+                self.right_bridge.posY
+                if self.type == "player"
+                else self.right_bridge.posY
+                - 0.5 * self.right_bridge.H
+                - self.CollisionRadius / 1000 * GRID_HEIGHT
+            ),
         )
         target_bridge = (
             self.left_bridge if l_bridge_dist < r_bridge_dist else self.right_bridge

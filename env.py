@@ -49,7 +49,12 @@ class GameWindow:
         pygame.draw.rect(
             self.screen,
             self.LIGHT_BLUE,
-            (0, 26 * GRID_HEIGHT, MAP_SIZE[0], 2 * GRID_HEIGHT),
+            (  # x0, y0, width, height
+                0,
+                (MAP_SIZE[1] // 2 - 1) * GRID_HEIGHT,
+                MAP_SIZE[0] * GRID_WIDTH,
+                2 * GRID_HEIGHT,
+            ),
         )
 
         # 繪製網格
@@ -59,37 +64,69 @@ class GameWindow:
             pygame.draw.line(self.screen, self.GRAY, (0, y), (self.SCREEN_WIDTH, y))
 
         # 道路
+        ROAD_SQUARE_WIDTH = MAP_SIZE[0] - 5
+        ROAD_SQUARE_HEIGHT = 26
         pygame.draw.rect(
             self.screen,
             self.ROAD_COLOR,
-            (4 * GRID_WIDTH, 13.5 * GRID_HEIGHT, GRID_WIDTH, 26 * GRID_HEIGHT),
+            (
+                3 * GRID_WIDTH,
+                3 * GRID_HEIGHT,
+                GRID_WIDTH,
+                ROAD_SQUARE_HEIGHT * GRID_HEIGHT,
+            ),
         )
         pygame.draw.rect(
             self.screen,
             self.ROAD_COLOR,
-            (15 * GRID_WIDTH, 13.5 * GRID_HEIGHT, GRID_WIDTH, 26 * GRID_HEIGHT),
+            (
+                14 * GRID_WIDTH,
+                3 * GRID_HEIGHT,
+                GRID_WIDTH,
+                ROAD_SQUARE_HEIGHT * GRID_HEIGHT,
+            ),
         )
         pygame.draw.rect(
             self.screen,
             self.ROAD_COLOR,
-            (4 * GRID_WIDTH, 13.5 * GRID_HEIGHT, 12 * GRID_WIDTH, GRID_HEIGHT),
+            (
+                3 * GRID_WIDTH,
+                3 * GRID_HEIGHT,
+                ROAD_SQUARE_WIDTH * GRID_WIDTH,
+                GRID_HEIGHT,
+            ),
         )
         pygame.draw.rect(
             self.screen,
             self.ROAD_COLOR,
-            (4 * GRID_WIDTH, 38.5 * GRID_HEIGHT, 12 * GRID_WIDTH, GRID_HEIGHT),
+            (
+                3 * GRID_WIDTH,
+                (MAP_SIZE[1] - 3) * GRID_HEIGHT,
+                12 * GRID_WIDTH,
+                GRID_HEIGHT,
+            ),
         )
 
         # 橋樑
         pygame.draw.rect(
             self.screen,
             self.BROWN,
-            (3.5 * GRID_WIDTH, 25.5 * GRID_HEIGHT, 2 * GRID_WIDTH, 3 * GRID_HEIGHT),
+            (
+                (BRIDGE_LEFT_X - BRIDGE_WIDTH / 2) * GRID_WIDTH,
+                (BRIDGE_Y - BRIDGE_HEIGHT / 2) * GRID_HEIGHT,
+                BRIDGE_WIDTH * GRID_WIDTH,
+                BRIDGE_HEIGHT * GRID_HEIGHT,
+            ),
         )
         pygame.draw.rect(
             self.screen,
             self.BROWN,
-            (14.5 * GRID_WIDTH, 25.5 * GRID_HEIGHT, 2 * GRID_WIDTH, 3 * GRID_HEIGHT),
+            (
+                (BRIDGE_RIGHT_X - BRIDGE_WIDTH / 2) * GRID_WIDTH,
+                (BRIDGE_Y - BRIDGE_HEIGHT / 2) * GRID_HEIGHT,
+                BRIDGE_WIDTH * GRID_WIDTH,
+                BRIDGE_HEIGHT * GRID_HEIGHT,
+            ),
         )
 
     def draw_deck_ui(self, player: Player, enemy: Player):
@@ -294,7 +331,7 @@ class ClashRoyaleEnv(gym.Env):
         self.game_window.draw_background()
         self.arena.draw_castles_and_towers(self.game_window.screen)
         self.arena.update_screen(self.game_window.screen)
-        self.game_window.draw_deck_ui(self.player, self.enemy)
+        # self.game_window.draw_deck_ui(self.player, self.enemy)
         pygame.display.flip()
         self.game_window.clock.tick(30)
 

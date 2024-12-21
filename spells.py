@@ -1,4 +1,4 @@
-from Constant import GRID_WIDTH, GRID_HEIGHT, DELTA_TIME
+from Constant import *
 import numpy as np
 import pygame, os
 

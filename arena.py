@@ -6,21 +6,9 @@ from character import Character
 from projectile import Projectile
 from spells import Spell, Arrow, Fireball, Rocket, Rage, Heal, Poison
 
-# 顏色
-GREEN = (102, 204, 0)
-BROWN = (139, 69, 19)
-BLUE = (0, 102, 255)
-RED = (255, 22, 0)
-LIGHT_BLUE = (30, 150, 255)
-LIGHT_RED = (255, 80, 30)
-GRAY = (169, 169, 169)
-BLACK = (0, 0, 0)
-PINK = (189, 52, 205)
-ROAD_COLOR = (182, 157, 102)
-
 
 class KingTower:
-    def __init__(self, X, Y, W, H, name="Main Tower", type="blue"):
+    def __init__(self, X, Y, name="Main Tower", type="blue"):
         self.name = name
         self.attack_range = 7000
         self.attack_speed = 1000
@@ -29,11 +17,13 @@ class KingTower:
         self.life = 2400
         self.activate = False
         self.type = type
-        self.posX = X + W / 2
-        self.posY = Y if type == "blue" else Y + H
-        self.W = W
-        self.H = H
-        self.gameObject = pygame.Rect(X, Y, W, H)
+        self.posX = X * GRID_WIDTH
+        self.posY = Y * GRID_HEIGHT
+        self.W = KING_TOWER_WIDTH * GRID_WIDTH
+        self.H = KING_TOWER_HEIGHT * GRID_HEIGHT
+        self.gameObject = pygame.Rect(
+            self.posX - self.W // 2, self.posY - self.H // 2, self.W, self.H
+        )
         self.enemis_in_range = False
         self.font = pygame.font.SysFont("Arial", 12, bold=True)
         self.current_time = pygame.time.get_ticks()
@@ -234,7 +224,7 @@ class KingTower:
 
 
 class PrincessTower:
-    def __init__(self, X, Y, W, H, name="left tower", type="blue"):
+    def __init__(self, X, Y, name="left tower", type="blue"):
         self.name = name
         self.attack_range = 7500
         self.attack_speed = 800
@@ -242,11 +232,13 @@ class PrincessTower:
         self.total_life = 1400
         self.life = 1400
         self.type = type
-        self.posX = X + W / 2
-        self.posY = Y if type == "blue" else Y + H
-        self.W = W
-        self.H = H
-        self.gameObject = pygame.Rect(X, Y, W, H)
+        self.posX = X * GRID_WIDTH
+        self.posY = Y * GRID_HEIGHT
+        self.W = PRINCESS_TOWER_WIDTH * GRID_WIDTH
+        self.H = PRINCESS_TOWER_HEIGHT * GRID_HEIGHT
+        self.gameObject = pygame.Rect(
+            self.posX - self.W / 2, self.posY - self.H / 2, self.W, self.H
+        )
         self.enemis_in_range = False
         self.font = pygame.font.SysFont("Arial", 12, bold=True)
         self.current_time = pygame.time.get_ticks()
@@ -447,11 +439,12 @@ class PrincessTower:
 
 
 class Bridge:
-    def __init__(self, X, Y, name="left bridge"):
+    def __init__(self, X, name="left bridge"):
         self.name = name
-        self.W, self.H = 2.5 * GRID_WIDTH, 2 * GRID_HEIGHT
-        self.posX = X + self.W / 2
-        self.posY = Y + self.H / 2
+        self.posX = X * GRID_WIDTH
+        self.posY = BRIDGE_Y * GRID_HEIGHT
+        self.W = BRIDGE_WIDTH * GRID_WIDTH
+        self.H = BRIDGE_HEIGHT * GRID_HEIGHT
 
 
 multiple_army_pos_offset = {
@@ -499,10 +492,10 @@ multiple_army_pos_offset = {
 
 def get_map_boundaries():
     # Calculate boundaries based on the grid size and map size
-    left_boundary = GRID_WIDTH
-    right_boundary = 19 * GRID_WIDTH
-    top_boundary = 10.3 * GRID_HEIGHT
-    bottom_boundary = 42.5 * GRID_HEIGHT
+    left_boundary = 0  # GRID_WIDTH
+    right_boundary = MAP_SIZE[0] * GRID_WIDTH  # 19 * GRID_WIDTH
+    top_boundary = 0  # 10.3 * GRID_HEIGHT
+    bottom_boundary = MAP_SIZE[1] * GRID_HEIGHT  # 42.5 * GRID_HEIGHT
 
     return left_boundary, top_boundary, right_boundary, bottom_boundary
 
@@ -514,66 +507,54 @@ class Arena:
 
         # 玩家和敵人的主堡（4x4）
         self.player_castle = KingTower(
-            8 * GRID_WIDTH,
-            37.5 * GRID_HEIGHT,
-            4 * GRID_WIDTH,
-            4 * GRID_HEIGHT,
+            PLAYER_KING_TOWER_X,
+            PLAYER_KING_TOWER_Y,
             name="Player Main Tower",
             type="blue",
         )
         self.enemy_castle = KingTower(
-            8 * GRID_WIDTH,
-            11.5 * GRID_HEIGHT,
-            4 * GRID_WIDTH,
-            4 * GRID_HEIGHT,
+            ENEMY_KING_TOWER_X,
+            ENEMY_KING_TOWER_Y,
             name="Enemy Main Tower",
             type="red",
         )
 
         # 防禦塔（3x3）
         self.player_left_tower = PrincessTower(
-            3 * GRID_WIDTH,
-            34.5 * GRID_HEIGHT,
-            3 * GRID_WIDTH,
-            3 * GRID_HEIGHT,
+            PLAYER_PRINCESS_TOWER_LEFT_X,
+            PLAYER_PRINCESS_TOWER_LEFT_Y,
             name="Player Left Tower",
             type="blue",
         )
         self.player_right_tower = PrincessTower(
-            14 * GRID_WIDTH,
-            34.5 * GRID_HEIGHT,
-            3 * GRID_WIDTH,
-            3 * GRID_HEIGHT,
+            PLAYER_PRINCESS_TOWER_RIGHT_X,
+            PLAYER_PRINCESS_TOWER_RIGHT_Y,
             name="Player Right Tower",
             type="blue",
         )
 
         self.enemy_left_tower = PrincessTower(
-            3 * GRID_WIDTH,
-            15.5 * GRID_HEIGHT,
-            3 * GRID_WIDTH,
-            3 * GRID_HEIGHT,
+            ENEMY_PRINCESS_TOWER_LEFT_X,
+            ENEMY_PRINCESS_TOWER_LEFT_Y,
             name="Enemy Left Tower",
             type="red",
         )
         self.enemy_right_tower = PrincessTower(
-            14 * GRID_WIDTH,
-            15.5 * GRID_HEIGHT,
-            3 * GRID_WIDTH,
-            3 * GRID_HEIGHT,
+            ENEMY_PRINCESS_TOWER_RIGHT_X,
+            ENEMY_PRINCESS_TOWER_RIGHT_Y,
             name="Enemy Right Tower",
             type="red",
         )
 
         # 橋
-        self.left_bridge = Bridge(3.5 * GRID_WIDTH, 25.5 * GRID_HEIGHT)
-        self.right_bridge = Bridge(14.5 * GRID_WIDTH, 25.5 * GRID_HEIGHT)
+        self.left_bridge = Bridge(BRIDGE_LEFT_X)
+        self.right_bridge = Bridge(BRIDGE_RIGHT_X)
 
         # boundary
-        self.left_boundary = GRID_WIDTH
-        self.right_boundary = 19 * GRID_WIDTH
-        self.top_boundary = 10.3 * GRID_HEIGHT
-        self.bottom_boundary = 42.5 * GRID_HEIGHT
+        self.left_boundary = 0
+        self.right_boundary = MAP_SIZE[0] * GRID_WIDTH
+        self.top_boundary = 0
+        self.bottom_boundary = MAP_SIZE[1] * GRID_HEIGHT
 
         # player/enymy角色的queue
         self.player_queue = []
