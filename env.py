@@ -2,7 +2,8 @@ import gym, random
 from gym import spaces
 import numpy as np
 import pygame
-from arena import SCREEN_WIDTH, SCREEN_HEIGHT, GRID_HEIGHT, GRID_WIDTH, Arena
+from arena import Arena
+from Constant import *
 from character import Character
 from building import Building
 from player import Player
@@ -48,8 +49,14 @@ class GameWindow:
         pygame.draw.rect(
             self.screen,
             self.LIGHT_BLUE,
-            (0, 26 * GRID_HEIGHT, self.SCREEN_WIDTH, 2 * GRID_HEIGHT),
+            (0, 26 * GRID_HEIGHT, MAP_SIZE[0], 2 * GRID_HEIGHT),
         )
+
+        # 繪製網格
+        for x in range(0, self.SCREEN_WIDTH, GRID_WIDTH):
+            pygame.draw.line(self.screen, self.GRAY, (x, 0), (x, self.SCREEN_HEIGHT))
+        for y in range(0, self.SCREEN_HEIGHT, GRID_HEIGHT):
+            pygame.draw.line(self.screen, self.GRAY, (0, y), (self.SCREEN_WIDTH, y))
 
         # 道路
         pygame.draw.rect(
