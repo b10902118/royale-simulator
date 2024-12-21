@@ -43,7 +43,8 @@ for i in range(50):  # Generate 10 synthetic images
 
     positions_images = []
     for _ in range(
-        random.randint(3, 10)
+        5
+        # random.randint(5)
     ):  # random.randint(1, 5)):  # Random number of images to paste
         img_path = random.choice(image_paths)
         img = Image.open(img_path)
