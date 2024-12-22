@@ -122,7 +122,7 @@ class AndroidViewer(ControlMixin):
                     'CLASSPATH=/data/local/tmp/scrcpy-server.jar',
                     'app_process',
                     '/',
-                    f'com.genymobile.scrcpy.Server 1.12.1 {max_width} {bitrate} {max_fps} true - false true',
+                    f'com.genymobile.scrcpy.Server 3.0 max_size={max_width} bitrate={bitrate} max_fps={max_fps}',
                 ],
                 cwd=server_root,
             )
