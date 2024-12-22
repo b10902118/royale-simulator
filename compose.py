@@ -159,7 +159,7 @@ def draw_chr_effect(chr_img):
 
 
 # annotations = {}
-for i in tqdm(range(3000)):  # Generate 10 synthetic images
+for i in tqdm(range(150)):  # Generate 10 synthetic images
     bg = random.choice(backgrounds).copy()
 
     positions_images = []

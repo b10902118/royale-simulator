@@ -2,10 +2,12 @@ from ultralytics import YOLO
 from glob import glob
 
 # Load a model
-model = YOLO("./runs/detect/train6/weights/last.pt")  # pretrained YOLO11n model
+model = YOLO("./runs/detect/train28/weights/best.pt")  # pretrained YOLO11n model
 
 # Run batched inference on a list of images
-results = model(glob("frame_test/*.jpg"), conf=0.9)  # return a list of Results objects
+results = model(
+    glob("/tmp2/img/12-21-01-11-36/*.png"), conf=0.6
+)  # return a list of Results objects
 
 # Process results list
 for i, result in enumerate(results):
