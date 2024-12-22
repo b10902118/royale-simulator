@@ -3,20 +3,23 @@ import json
 import glob
 import random
 from os import path, makedirs
+import numpy as np
 
-background = Image.open("arena_main.png")
+backgrounds = [Image.open(p) for p in glob.glob("cropped_bg/*.png")]
 
 base_dirs = [
-    "giant/",
-    "musketeer/",
-    "mini_pekka/",
+    "giant",
+    "musketeer",
+    "mini_pekka",
+    "minion",
+    "goblin",
 ]
 
-cls_num = {"giant": 0, "musketeer": 1, "mini_pekka": 2}
+cls_num = {name: i for i, name in enumerate(base_dirs)}
 
 image_paths = []
 for base_dir in base_dirs:
-    image_paths += glob.glob(base_dir + "*.png")
+    image_paths += glob.glob(path.join(base_dir, "*.png"))
 
 
 output_dir = "data/"
@@ -37,18 +40,133 @@ def get_random_position(background_size, image_size):
     return x, y
 
 
+# LEVEL_WIDTH = 10
+# LEVEL_HEIGHT = 16
+# HP_BAR_HEIGHT = 6
+
+level_images = {
+    "blue": Image.open("level_blue.png"),
+    "red": Image.open("level_red.png"),
+}
+LEVEL_W = 28
+LEVEL_H = 34
+
+health_images = {
+    "blue": Image.open("health_blue.png"),
+    "red": Image.open("health_red.png"),
+}
+HP_H = 16
+HP_OFF_H = LEVEL_H // 2 - HP_H // 2
+
+for color in ["blue", "red"]:
+    health_images[color] = health_images[color].resize(
+        (health_images[color].width, HP_H)
+    )
+    level_images[color] = level_images[color].resize((LEVEL_W, LEVEL_H))
+
+ELIXER_COLOR = (174, 86, 234)
+
+clock_image = Image.open("clock.png")
+
+
+def draw_health_bar(pos, chr_img, background):
+    x, y = pos
+    color = random.choice(["blue", "red"])
+    level_only = random.choice([True, False])
+
+    if level_only and color != "blue":
+        x_off = chr_img.width // 2 - LEVEL_W // 2
+        y_off = random.randint(-40, 0)
+        background.paste(
+            level_images[color], (x + x_off, y + y_off), level_images[color]
+        )
+
+    else:
+        x_off = random.randint(-20, 0)
+        y_off = random.randint(-40, 0)
+        hbar = health_images[color].copy()
+        hbar_width = random.randint(5, round(chr_img.width))
+        hbar = hbar.resize((hbar_width, hbar.height))
+
+        level_x = x + x_off
+        level_y = y + y_off
+        background.paste(level_images[color], (level_x, level_y), level_images[color])
+        background.paste(hbar, (level_x + LEVEL_W, level_y + HP_OFF_H), hbar)
+
+
+def draw_clock(pos, chr_img, background):
+    x, y = pos
+    x_off = chr_img.width // 2 - clock_image.width // 2
+    if clock_image.height > chr_img.height:
+        y_off = chr_img.height + random.randint(
+            -chr_img.height // 3, clock_image.height
+        )
+    else:
+        y_off = chr_img.height + random.randint(
+            -clock_image.height, clock_image.height // 2
+        )
+    background.paste(clock_image, (x + x_off, y + y_off), clock_image)
+
+
+# Image.open(image_paths[0])
+# draw_health_bar(Image.open(image_paths[0])).show()
+
+# exit()
+
+
+def draw_elixers(scene):
+    # Draw irregular shape with color similar to ELIXER_COLOR
+    shape = Image.new("RGBA", scene.size, (0, 0, 0, 0))
+    shape_draw = ImageDraw.Draw(shape)
+    num_ovals = random.randint(5, 10)
+    for _ in range(num_ovals):
+        x0 = random.randint(0, scene.width)
+        y0 = random.randint(0, scene.height)
+        x1 = x0 + random.randint(20, 100)
+        y1 = y0 + random.randint(20, 100)
+        color_variation = (
+            ELIXER_COLOR[0] + random.randint(-20, 20),
+            ELIXER_COLOR[1] + random.randint(-20, 20),
+            ELIXER_COLOR[2] + random.randint(-20, 20),
+            random.randint(128, 256),  # Alpha value for transparency
+        )
+        shape_draw.ellipse([x0, y0, x1, y1], fill=color_variation)
+    scene = Image.alpha_composite(scene.convert("RGBA"), shape)
+
+
+def draw_chr_effect(chr_img):
+    color = random.choice(["blue", "red"])
+    overlay = Image.new("RGBA", chr_img.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    chr_array = np.array(chr_img)
+    alpha_channel = chr_array[:, :, 3]
+    mask = alpha_channel > 20
+
+    overlay_array = np.zeros_like(chr_array)
+
+    black = random.randint(0, 128)
+    alpha = random.randint(64, 196)
+    filter_color = (
+        [black, black, 255, alpha] if color == "blue" else [255, black, black, alpha]
+    )
+    overlay_array[mask] = filter_color
+
+    overlay = Image.fromarray(overlay_array)
+    chr_img = Image.alpha_composite(chr_img.convert("RGBA"), overlay)
+    return chr_img
+
+
 # annotations = {}
-for i in range(50):  # Generate 10 synthetic images
-    new_image = background.copy()
+for i in range(10):  # Generate 10 synthetic images
+    bg = random.choice(backgrounds)
 
     positions_images = []
     for _ in range(
-        5
-        # random.randint(5)
+        random.randint(5, 20)
     ):  # random.randint(1, 5)):  # Random number of images to paste
         img_path = random.choice(image_paths)
         img = Image.open(img_path)
-        position = get_random_position(new_image.size, img.size)
+        position = get_random_position(bg.size, img.size)
         cls_name = img_path.split("/")[-2]
         positions_images.append(
             (
@@ -63,27 +181,33 @@ for i in range(50):  # Generate 10 synthetic images
 
     bbox = []
     for position, img, clsn in positions_images:
-        new_image.paste(img, position, img)
+        if random.random() < 0.3:
+            img = draw_chr_effect(img)
+        bg.paste(img, position, img)
+        if random.random() < 0.8:
+            draw_health_bar(position, img, bg)
+        if random.random() < 0.2:
+            draw_clock(position, img, bg)
         img_width, img_height = img.size
         x_center = position[0] + img_width / 2
         y_center = position[1] + img_height / 2
         bbox.append(
             (
                 clsn,
-                x_center / new_image.width,
-                y_center / new_image.height,
-                img_width / new_image.width,
-                img_height / new_image.height,
+                x_center / bg.width,
+                y_center / bg.height,
+                img_width / bg.width,
+                img_height / bg.height,
             )
         )
 
     # Add shadow to the image
     if random.random() < 0.3:
-        shadow = Image.new("RGBA", new_image.size, (0, 0, 0, 0))
+        shadow = Image.new("RGBA", bg.size, (0, 0, 0, 0))
         shadow_draw = ImageDraw.Draw(shadow)
-        shadow_radius = random.randint(new_image.height // 3, new_image.height // 2)
-        shadow_x = random.randint(0, new_image.width)
-        shadow_y = random.randint(0, new_image.height)
+        shadow_radius = random.randint(bg.width // 4, bg.width // 3)
+        shadow_x = random.randint(0, bg.width)
+        shadow_y = random.randint(0, bg.height)
         shadow_draw.ellipse(
             (
                 shadow_x - shadow_radius,
@@ -93,7 +217,10 @@ for i in range(50):  # Generate 10 synthetic images
             ),
             fill=(0, 0, 0, 50),
         )
-        new_image = Image.alpha_composite(new_image.convert("RGBA"), shadow)
+        bg = Image.alpha_composite(bg.convert("RGBA"), shadow)
+
+    if random.random() < 0.5:
+        draw_elixers(bg)
 
     # Draw bounding boxes on the image
     # draw = ImageDraw.Draw(new_image)
@@ -111,7 +238,7 @@ for i in range(50):  # Generate 10 synthetic images
     # for box in bbox:
     #    draw.rectangle(box["bbox"], outline="red", width=2)
 
-    new_image.save(path.join(images_dir, f"{i}.png"))
+    bg.save(path.join(images_dir, f"{i}.png"))
     with open(path.join(labels_dir, f"{i}.txt"), "w") as f:
         for box in bbox:
             f.write(" ".join(map(str, box)) + "\n")

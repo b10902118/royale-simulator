@@ -187,10 +187,10 @@ def WriteShape(spritedata, sheetdata, ShapeCount, TotalsTexture, filein, sheetim
                 y -= bbox[1]
                 centers[shape_index] = (x / outImage.width, y / outImage.height)
 
-                # draw = ImageDraw.Draw(outImage)
-                # draw.ellipse(
-                #    (x - 5, y - 5, x + 5, y + 5), outline="red", fill="red", width=1
-                # )
+                draw = ImageDraw.Draw(outImage)
+                draw.ellipse(
+                    (x - 5, y - 5, x + 5, y + 5), outline="red", fill="red", width=1
+                )
 
                 outImage.save(f"{pathout}/{shape_index}.png")
 

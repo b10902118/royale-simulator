@@ -1,31 +1,57 @@
 from PIL import Image
+from glob import glob
+import json
+import os
+from os import path
 
+output_dir = "./basic_cannon_merged"
+os.makedirs(output_dir, exist_ok=True)
 
-def stack_images_center(image1_path, image2_path, output_path):
-    # Open the images
-    img1 = Image.open(image1_path)
-    img2 = Image.open(image2_path)
+image_dir = "./building_basic_cannon_out"
 
-    # Get the dimensions of the images
-    w1, h1 = img1.size
-    w2, h2 = img2.size
+centers = json.load(open(path.join(image_dir, "centers.json")))
 
-    # Calculate the center offsets
-    y_offset = (h2 - h1) // 2
-    x_offset = (w2 - w1) // 2
+base_image = Image.open(path.join(image_dir, "0.png"))
+bx, by = centers["0"]
 
-    # Create a new image with the size of the second image
-    stacked_image = Image.new("RGB", (w2, h2))
+bl = round(bx * base_image.width)
+br = round(base_image.width - bl)
+bt = round(by * base_image.height)
+bb = round(base_image.height - bt)
 
-    # Place the second image on the new image
-    stacked_image.paste(img2, (0, 0))
+for key, center in centers.items():
+    if key == "0":
+        continue
+    x, y = center
+    tube_image = Image.open(path.join(image_dir, f"{key}.png"))
+    l = round(x * tube_image.width)
+    r = round(tube_image.width - l)
+    t = round(y * tube_image.height)
+    b = round(tube_image.height - t)
 
-    # Place the first image on the new image, centered
-    stacked_image.paste(img1, (x_offset, y_offset), img1)
+    w = max(bl, l) + max(br, r)
+    h = max(bt, t) + max(bb, b)
 
-    # Save the result
-    stacked_image.save(output_path)
+    new_image = Image.new("RGBA", (w, h), (0, 0, 0, 0))
 
+    base_offset = [0, 0]
+    tube_offset = [0, 0]
 
-# Example usage
-stack_images_center("/path/to/image1.jpg", "/path/to/image2.jpg", "/path/to/output.jpg")
+    if bl > l:
+        base_offset[0] = 0
+        tube_offset[0] = bl - l
+    else:
+        base_offset[0] = l - bl
+        tube_offset[0] = 0
+
+    if bt > t:
+        base_offset[1] = 0
+        tube_offset[1] = bt - t
+    else:
+        base_offset[1] = t - bt
+        tube_offset[1] = 0
+
+    new_image.paste(base_image, base_offset, base_image)
+    new_image.paste(tube_image, tube_offset, tube_image)
+
+    new_image.save(f"{output_dir}/{key}.png")

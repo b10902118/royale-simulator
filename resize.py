@@ -9,7 +9,7 @@ scales = {
     "giant": 1.6652,
     "minion": 0.9466,
     "musketeer": 1.2943,
-    "mini_pekka": 1.08,
+    "mini_pekka": 1.3727,
 }
 
 
