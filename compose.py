@@ -4,6 +4,7 @@ import glob
 import random
 from os import path, makedirs
 import numpy as np
+from tqdm import tqdm
 
 backgrounds = [Image.open(p) for p in glob.glob("cropped_bg/*.png")]
 
@@ -45,15 +46,15 @@ def get_random_position(background_size, image_size):
 # HP_BAR_HEIGHT = 6
 
 level_images = {
-    "blue": Image.open("level_blue.png"),
-    "red": Image.open("level_red.png"),
+    "blue": Image.open("./props/level_blue.png"),
+    "red": Image.open("./props/level_red.png"),
 }
 LEVEL_W = 28
 LEVEL_H = 34
 
 health_images = {
-    "blue": Image.open("health_blue.png"),
-    "red": Image.open("health_red.png"),
+    "blue": Image.open("./props/health_blue.png"),
+    "red": Image.open("./props/health_red.png"),
 }
 HP_H = 16
 HP_OFF_H = LEVEL_H // 2 - HP_H // 2
@@ -66,7 +67,7 @@ for color in ["blue", "red"]:
 
 ELIXER_COLOR = (174, 86, 234)
 
-clock_image = Image.open("clock.png")
+clock_image = Image.open("./props/clock.png")
 
 
 def draw_health_bar(pos, chr_img, background):
@@ -132,6 +133,7 @@ def draw_elixers(scene):
         )
         shape_draw.ellipse([x0, y0, x1, y1], fill=color_variation)
     scene = Image.alpha_composite(scene.convert("RGBA"), shape)
+    return scene
 
 
 def draw_chr_effect(chr_img):
@@ -157,13 +159,12 @@ def draw_chr_effect(chr_img):
 
 
 # annotations = {}
-for i in range(10):  # Generate 10 synthetic images
-    bg = random.choice(backgrounds)
+for i in tqdm(range(3000)):  # Generate 10 synthetic images
+    bg = random.choice(backgrounds).copy()
 
     positions_images = []
-    for _ in range(
-        random.randint(5, 20)
-    ):  # random.randint(1, 5)):  # Random number of images to paste
+    n = random.randint(8, 20)
+    for _ in range(n):  # random.randint(1, 5)):  # Random number of images to paste
         img_path = random.choice(image_paths)
         img = Image.open(img_path)
         position = get_random_position(bg.size, img.size)
@@ -220,23 +221,32 @@ for i in range(10):  # Generate 10 synthetic images
         bg = Image.alpha_composite(bg.convert("RGBA"), shadow)
 
     if random.random() < 0.5:
-        draw_elixers(bg)
+        bg = draw_elixers(bg)
 
     # Draw bounding boxes on the image
-    # draw = ImageDraw.Draw(new_image)
+    # draw = ImageDraw.Draw(bg)
+    # assert len(bbox) == n
     # for box in bbox:
     #    clsn, x_center, y_center, width, height = box
-    #    x0 = int((x_center - width / 2) * new_image.width)
-    #    y0 = int((y_center - height / 2) * new_image.height)
-    #    x1 = int((x_center + width / 2) * new_image.width)
-    #    y1 = int((y_center + height / 2) * new_image.height)
+    #    x0 = int((x_center - width / 2) * bg.width)
+    #    y0 = int((y_center - height / 2) * bg.height)
+    #    x1 = int((x_center + width / 2) * bg.width)
+    #    y1 = int((y_center + height / 2) * bg.height)
     #    draw.rectangle([x0, y0, x1, y1], outline="red", width=2)
     #    draw.text((x0, y0), str(clsn), fill="red")
 
     # Draw bounding boxes on the image
-    # draw = ImageDraw.Draw(new_image)
+    # draw = ImageDraw.Draw(bg)
     # for box in bbox:
-    #    draw.rectangle(box["bbox"], outline="red", width=2)
+    #     width = round(box[3] * bg.width)
+    #     height = round(box[4] * bg.height)
+    #     x0 = round(box[1] * bg.width - width / 2)
+    #     y0 = round(box[2] * bg.height - height / 2)
+    #     draw.rectangle(
+    #         [x0, y0, x0 + width, y0 + height],
+    #         outline="red",
+    #         width=2,
+    #     )
 
     bg.save(path.join(images_dir, f"{i}.png"))
     with open(path.join(labels_dir, f"{i}.txt"), "w") as f:
