@@ -8,10 +8,9 @@ import scrcpy
 import signal
 import sys
 from datetime import datetime
-
-# from ultralytics import YOLO
-# import tkinter as tk
-# from PIL import Image, ImageTk
+from ultralytics import YOLO
+import tkinter as tk
+from PIL import Image, ImageTk
 
 # Ensure this module is installed and properly configured
 
@@ -157,16 +156,16 @@ def main():
         max_fps=10,
     )
 
-    # print("Loading model...")
-    # model = YOLO("../detector/best.pt")
+    print("Loading model...")
+    model = YOLO("../detector/last.pt")
 
-    # root = tk.Tk()
-    # root.title("Model Prediction")
-    # root.geometry("800x600")
-    #
-    ## Create a Label to display the image
-    # label = tk.Label(root)
-    # label.pack()
+    root = tk.Tk()
+    root.title("Model Prediction")
+    root.geometry("500x800")
+
+    # Create a Label to display the image
+    label = tk.Label(root)
+    label.pack()
 
     def update_image(frame):
         # Convert the frame to an image
@@ -197,30 +196,31 @@ def main():
         if frame is not None:
             try:
                 input_img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                result = model(input_img)
+                input_img = input_img[120:1850, :]
+
+                result = model(input_img, conf=0.8)
                 # print(f"{type(result)=}")
                 pred_img = result[0].plot()
+                pred_img = cv2.resize(pred_img, (400, 600))
                 # print(type(pred_img))
                 update_image(pred_img)
             except Exception as e:
                 print(f"Failed to process frame: {e}")
                 pass
 
-    # client.add_listener(scrcpy.EVENT_FRAME, on_frame)
-    print("Starting client...")
+    client.add_listener(scrcpy.EVENT_FRAME, on_frame)
     client.start(threaded=True)
 
     # perform_swipe(540, 2000, 540, 500, device_id)
     # perform_tap(700, 1750, device_id)
     # time.sleep(18)
-    print("Starting siumlator")
-    process = subprocess.Popen(
-        ["python", "test.py"],  # Just run python test.py, no need for PowerShell and cd
-        shell=True,
-        stdin=subprocess.PIPE,
-        text=True,
-        cwd="C:/Users/CYB/tst_py/sq_CR_sim",  # Set the correct directory
-    )
+    # process = subprocess.Popen(
+    #    ["python", "test.py"],  # Just run python test.py, no need for PowerShell and cd
+    #    shell=True,
+    #    stdin=subprocess.PIPE,
+    #    text=True,
+    #    cwd="C:/Users/CYB/tst_py/sq_CR_sim",  # Set the correct directory
+    # )
 
     # perform_tap(700, 2500, device_id)
     perform_tap(700, 1750, device1)
@@ -238,12 +238,12 @@ def main():
     # rand_x = random.randint(0, len(x) - 1)
     # rand_y = random.randint(0, 15)
     put_card(0, 9, 25, device1)
-    put_card(0, 6, 23, device2)
+    put_card(0, 9, 25, device2)
 
     input_data = "Giant 9 25 Musketeer 9 6\n"
     print(f"Sending input to subprocess: {input_data}")
-    process.stdin.write(input_data)
-    process.stdin.flush()
+    # process.stdin.write(input_data)
+    # process.stdin.flush()
 
     # stdout_line = process.stdout.readline()
     # stderr_line = process.stderr.readline()
@@ -260,10 +260,10 @@ def main():
     # process frames
 
     print("Done")
-    # root.mainloop()
+    root.mainloop()
     time.sleep(180)
-    process.terminate()
-    process.wait()
+    # process.terminate()
+    # process.wait()
     client.stop()
     exit(0)
     return
